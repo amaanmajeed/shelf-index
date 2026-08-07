@@ -93,4 +93,15 @@ assert(summary.target === 30, "6h/day week target 30");
 assert(Math.abs(summary.needed - 12) < 0.01, "need 12, got " + summary.needed);
 assert(Math.abs(summary.perDay.find((d) => d.label === "Thu").hours - 6) < 0.01, "Thu 6h share");
 
+// Holiday on absent Fri banks full daily target
+summary = OH.summarizeWeek(
+  days2,
+  { "2026-08-07": { holiday: true, hours: 9 } },
+  now
+);
+const friH = summary.perDay.find((d) => d.label === "Fri");
+assert(friH.status === "holiday", "Fri holiday, got " + friH.status);
+assert(Math.abs(summary.banked - 45) < 0.01, "holiday banks 9 → 45, got " + summary.banked);
+assert(summary.needed === 0, "week met after holiday");
+
 console.log("ok — projections:", summary.focus);

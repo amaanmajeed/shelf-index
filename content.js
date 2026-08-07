@@ -229,6 +229,11 @@
       overrides && overrides[d.key] && typeof overrides[d.key].hours === "number"
         ? overrides[d.key].hours
         : "";
+    const holidayBtn = canMarkHoliday(d)
+      ? '<button type="button" class="si-holiday" data-key="' +
+        d.key +
+        '">Holiday</button>'
+      : "";
     return (
       '<span class="si-hours-edit" data-key="' +
       d.key +
@@ -239,11 +244,17 @@
       '<button type="button" class="si-save-hours" data-key="' +
       d.key +
       '">Save</button>' +
+      holidayBtn +
       '<button type="button" class="si-cancel" data-key="' +
       d.key +
       '" aria-label="Cancel">×</button>' +
       "</span>"
     );
+  }
+
+  /** Holiday only when neither check-in nor check-out exists. */
+  function canMarkHoliday(d) {
+    return !d.checkIn && !d.checkOut && d.status !== "holiday";
   }
 
   function ensureNavBtn() {
@@ -373,6 +384,13 @@
       saveHours(saveH.getAttribute("data-key")).catch((err) => {
         if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
       });
+      return;
+    }
+    const holiday = e.target.closest(".si-holiday");
+    if (holiday) {
+      markHoliday(holiday.getAttribute("data-key")).catch((err) => {
+        if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+      });
     }
   }
 
@@ -399,7 +417,11 @@
 
   function wantsHoursEditor(d) {
     if (isFriday(d)) return false;
-    if (editingKey === d.key && d.status === "manual") return true;
+    if (
+      editingKey === d.key &&
+      (d.status === "manual" || d.status === "holiday")
+    )
+      return true;
     if (skippedKeys[d.key]) return false;
     return d.status === "needs_hours" || (d.is_absent && !d.checkIn);
   }
@@ -438,18 +460,30 @@
           !hoursEd &&
           (d.status === "leave_time" ||
             d.status === "manual" ||
+            d.status === "holiday" ||
             d.status === "needs_leave" ||
             d.status === "needs_hours" ||
             d.status === "projected" ||
             (d.missing_checkout && d.checkIn) ||
             (d.is_absent && !d.checkIn));
+        const holidayBtn =
+          !leaveEd && !hoursEd && canMarkHoliday(d)
+            ? '<button type="button" class="si-holiday" data-key="' +
+              d.key +
+              '">Holiday</button>'
+            : "";
         const note = canEdit
           ? '<button type="button" class="si-edit" data-key="' +
             d.key +
-            '">Edit</button>'
-          : d.status === "projected"
-            ? "projected"
-            : "";
+            '">Edit</button>' +
+            holidayBtn
+          : holidayBtn
+            ? holidayBtn
+            : d.status === "holiday"
+              ? "holiday"
+              : d.status === "projected"
+                ? "projected"
+                : "";
         return (
           "<tr><td>" +
           d.label +
@@ -567,6 +601,17 @@
     }
     await setOverride(key, { hours: h });
     editingKey = null;
+    await refreshFromState();
+  }
+
+  async function markHoliday(key) {
+    const d =
+      lastSummary && lastSummary.perDay.find((x) => x.key === key);
+    if (!d || !canMarkHoliday(d)) return;
+    // ponytail: holiday banks a full daily target so the week doesn't demand make-up
+    await setOverride(key, { holiday: true, hours: lastDaily });
+    editingKey = null;
+    delete skippedKeys[key];
     await refreshFromState();
   }
 

@@ -153,13 +153,28 @@
   /**
    * Resolve hours for one day.
    * @param {object} day - Odoo day record
-   * @param {object|undefined} override - { leave: "HH:MM" } | { hours: number }
+   * @param {object|undefined} override - { leave: "HH:MM" } | { hours: number } | { holiday: true, hours: number }
    */
   function dayHours(day, override) {
-    if (!day) return { hours: 0, status: "missing" };
+    if (!day) {
+      if (override && override.holiday) {
+        return {
+          hours: typeof override.hours === "number" ? override.hours : 0,
+          status: "holiday",
+        };
+      }
+      return { hours: 0, status: "missing" };
+    }
     if (day.is_weekend) return { hours: 0, status: "weekend" };
     if (day.is_future) return { hours: 0, status: "future" };
     if (day.on_leave) return { hours: 0, status: "leave" };
+
+    if (override && override.holiday) {
+      return {
+        hours: typeof override.hours === "number" ? override.hours : 0,
+        status: "holiday",
+      };
+    }
 
     if (override && typeof override.hours === "number") {
       return { hours: override.hours, status: "manual" };
@@ -205,7 +220,10 @@
 
   function isSolid(d) {
     return (
-      d.status === "ok" || d.status === "leave_time" || d.status === "manual"
+      d.status === "ok" ||
+      d.status === "leave_time" ||
+      d.status === "manual" ||
+      d.status === "holiday"
     );
   }
 
