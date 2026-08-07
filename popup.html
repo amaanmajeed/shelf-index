@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Shelf Index</title>
+    <style>
+      body {
+        font: 13px/1.4 system-ui, sans-serif;
+        margin: 12px;
+        min-width: 260px;
+        color: #1a1f2e;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 8px;
+        cursor: pointer;
+      }
+      #status {
+        margin-top: 10px;
+        white-space: pre-wrap;
+      }
+      .muted {
+        color: #666;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <strong>Shelf Index</strong>
+    <p class="muted">Weekly shelf tally</p>
+    <button id="analyze" type="button">Refresh index</button>
+    <div id="status">Loading…</div>
+    <script src="popup.js"></script>
+  </body>
+</html>

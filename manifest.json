@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Shelf Index",
+  "version": "1.0.0",
+  "description": "Lightweight shelf index helper for signed-in workspace pages.",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": ["https://odoo.codingcops.com/*"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Shelf Index",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://odoo.codingcops.com/*"],
+      "js": ["hours.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
