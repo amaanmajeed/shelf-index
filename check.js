@@ -128,6 +128,23 @@ summary = OH.summarizeWeek(daysThu, { "2026-08-07": { holiday: true } }, thuNow,
 assert(summary.target === 24, "6h/day + 1 holiday → 24h, got " + summary.target);
 assert(summary.perDay.find((d) => d.label === "Fri").hours === 0, "holiday hours stay 0");
 
+// Wed still clocked in — project today+Thu+Fri, don't treat as a gap to fill
+const wedNow = new Date("2026-08-05T12:00:00+05:00");
+const daysWed = [
+  { date: "2026-08-03", hours: 9, check_in: "2026-08-03 05:00:00", check_out: "2026-08-03 14:00:00" },
+  { date: "2026-08-04", hours: 9, check_in: "2026-08-04 05:00:00", check_out: "2026-08-04 14:00:00" },
+  { date: "2026-08-05", hours: 0, check_in: "2026-08-05 05:00:00", check_out: null, missing_checkout: true },
+  { date: "2026-08-06", hours: 0, check_in: null, check_out: null, is_future: true },
+  { date: "2026-08-07", hours: 0, check_in: null, check_out: null, is_future: true },
+];
+summary = OH.summarizeWeek(daysWed, {}, wedNow);
+assert(Math.abs(summary.banked - 18) < 0.01, "Wed-now banked 18, got " + summary.banked);
+const wed = summary.perDay.find((d) => d.label === "Wed");
+assert(wed.status === "projected", "Wed projected while clocked in, got " + wed.status);
+assert(Math.abs(wed.hours - 9) < 0.01, "Wed 9h share, got " + wed.hours);
+assert(wed.endLabel === "7:00 pm", "Wed leave 7pm, got " + wed.endLabel);
+assert(wed.endKind === "projected", "Wed end yellow");
+
 // Fri start override → entered start, leave computed from remaining
 summary = OH.summarizeWeek(daysThu, { "2026-08-07": { start: "11:00" } }, thuNow);
 const friS = summary.perDay.find((d) => d.label === "Fri");

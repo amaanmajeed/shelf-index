@@ -250,13 +250,14 @@
   }
 
   /**
-   * Project leave (and Fri start if needed) on incomplete Thu/Fri
-   * so solid + projected hits WEEK_TARGET.
+   * Project leave on remaining incomplete weekdays (today→Fri, always
+   * including incomplete Thu/Fri) so solid + projected hits WEEK_TARGET.
    */
-  function applyProjections(perDay, needed) {
+  function applyProjections(perDay, needed, todayWd) {
     if (needed <= 0) return;
+    const from = Math.min(todayWd || 4, 4);
     const slots = perDay.filter(
-      (d) => (d.weekday === 4 || d.weekday === 5) && !isSolid(d)
+      (d) => d.weekday >= from && d.weekday <= 5 && !isSolid(d)
     );
     if (!slots.length) return;
     const share = needed / slots.length;
@@ -350,7 +351,7 @@
     const needed = Math.max(0, weekTarget - banked);
     const todayKey = dateKey(now);
     const todayWd = weekdayMon1(now);
-    const tips = applyProjections(perDay, needed) || [];
+    const tips = applyProjections(perDay, needed, todayWd) || [];
 
     let focus =
       "Banked " + formatHours(banked) + " · Need " + formatHours(needed) + " by Friday";

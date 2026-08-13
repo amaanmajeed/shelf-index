@@ -420,21 +420,19 @@
 
   function wantsLeaveEditor(d) {
     if (isFriday(d) || d.status === "holiday") return false;
-    if (editingKey === d.key && (d.status === "leave_time" || d.checkIn))
-      return true;
-    if (skippedKeys[d.key]) return false;
-    return (
-      d.status === "needs_leave" ||
-      (d.missing_checkout && d.checkIn && d.status !== "leave_time")
-    );
+    if (editingKey !== d.key || skippedKeys[d.key]) return false;
+    return !!(d.status === "leave_time" || d.checkIn);
   }
 
   function wantsHoursEditor(d) {
     if (isFriday(d) || d.status === "holiday" || d.status === "projected")
       return false;
-    if (editingKey === d.key && d.status === "manual") return true;
-    if (skippedKeys[d.key]) return false;
-    return d.status === "needs_hours" || (d.is_absent && !d.checkIn);
+    if (editingKey !== d.key || skippedKeys[d.key]) return false;
+    return (
+      d.status === "manual" ||
+      d.status === "needs_hours" ||
+      (d.is_absent && !d.checkIn)
+    );
   }
 
   /** No Odoo check-in: enter start so leave can be projected (Thu/Fri, or any day you weren't there). */
@@ -719,6 +717,18 @@
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg && msg.type === "shelfIndexClear") {
+      lastOverrides = {};
+      lastDays = null;
+      lastSummary = null;
+      lastDaily = 9;
+      editingKey = null;
+      skippedKeys = {};
+      const el = document.getElementById(PANEL_ID);
+      if (el) el.remove();
+      sendResponse({ ok: true });
+      return;
+    }
     if (msg && msg.type === "shelfIndexAnalyze") {
       run()
         .then((s) =>

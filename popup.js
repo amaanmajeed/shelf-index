@@ -33,6 +33,18 @@ chrome.storage.local.get(["shelfIndexLastResult"], (r) => {
   showLast(r.shelfIndexLastResult);
 });
 
+document.getElementById("clear").addEventListener("click", async () => {
+  await chrome.storage.local.clear();
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = tabs[0];
+  if (tab && tab.id) {
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: "shelfIndexClear" });
+    } catch (_e) {}
+  }
+  document.getElementById("status").textContent = "Cleared.";
+});
+
 document.getElementById("analyze").addEventListener("click", async () => {
   const status = document.getElementById("status");
   status.textContent = "Working…";
