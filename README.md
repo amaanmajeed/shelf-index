@@ -6,7 +6,7 @@ Shows banked hours vs the week target (45h at 9h/day, or 30h at 6h/day), project
 
 ## Install
 
-1. Open `chrome://extensions`
+1. Paste `chrome://extensions` into the browser address bar and press Enter
 2. Enable **Developer mode**
 3. **Load unpacked** → select this folder
 4. Sign in to Odoo, open the attendance/workspace page, then click the clock icon in the navbar (or use the extension popup → **Refresh index**)
