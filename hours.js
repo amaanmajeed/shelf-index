@@ -130,6 +130,14 @@
   }
 
   function parseTimeOnDay(dayKey, hhmm) {
+    const s = String(hhmm).trim();
+    // stored overrides are 24h "HH:MM" — don't run the leave-time PM heuristic
+    const m = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (m && +m[1] <= 23 && +m[2] <= 59) {
+      return new Date(
+        dayKey + "T" + pad(+m[1]) + ":" + pad(+m[2]) + ":00+05:00"
+      );
+    }
     const t = parseUserTime(hhmm);
     if (!t) return null;
     return new Date(dayKey + "T" + t.hhmm + ":00+05:00");
@@ -153,28 +161,20 @@
   /**
    * Resolve hours for one day.
    * @param {object} day - Odoo day record
-   * @param {object|undefined} override - { leave: "HH:MM" } | { hours: number } | { holiday: true, hours: number }
+   * @param {object|undefined} override - { leave } | { hours } | { holiday } | { start }
    */
   function dayHours(day, override) {
-    if (!day) {
-      if (override && override.holiday) {
-        return {
-          hours: typeof override.hours === "number" ? override.hours : 0,
-          status: "holiday",
-        };
-      }
-      return { hours: 0, status: "missing" };
-    }
-    if (day.is_weekend) return { hours: 0, status: "weekend" };
-    if (day.is_future) return { hours: 0, status: "future" };
-    if (day.on_leave) return { hours: 0, status: "leave" };
-
+    // holiday wins over is_future / missing so Fri can be marked from Thu
     if (override && override.holiday) {
       return {
         hours: typeof override.hours === "number" ? override.hours : 0,
         status: "holiday",
       };
     }
+    if (!day) return { hours: 0, status: "missing" };
+    if (day.is_weekend) return { hours: 0, status: "weekend" };
+    if (day.is_future) return { hours: 0, status: "future" };
+    if (day.on_leave) return { hours: 0, status: "leave" };
 
     if (override && typeof override.hours === "number") {
       return { hours: override.hours, status: "manual" };
@@ -287,7 +287,6 @@
     now = now || new Date();
     overrides = overrides || {};
     const daily = +dailyHours === 6 ? 6 : 9;
-    const weekTarget = weekTargetForDaily(daily);
     const keys = weekDayKeys(now);
     const byKey = {};
     (days || []).forEach((d) => {
@@ -297,15 +296,25 @@
 
     const perDay = keys.map((key, i) => {
       const day = byKey[key];
-      const resolved = dayHours(day, overrides[key]);
+      const o = overrides[key];
+      const resolved = dayHours(day, o);
+      const holiday = resolved.status === "holiday";
+      if (holiday) resolved.hours = 0;
       const names = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-      const start = resolved.checkIn || parseOdooDt(day && day.check_in);
-      const end =
-        resolved.leave ||
-        (resolved.status === "leave_time"
-          ? null
-          : parseOdooDt(day && day.check_out));
+      let start = holiday
+        ? null
+        : resolved.checkIn || parseOdooDt(day && day.check_in);
       let startKind = start ? "actual" : "";
+      if (!holiday && !start && o && o.start) {
+        start = parseTimeOnDay(key, o.start);
+        if (start) startKind = "entered";
+      }
+      const end = holiday
+        ? null
+        : resolved.leave ||
+          (resolved.status === "leave_time"
+            ? null
+            : parseOdooDt(day && day.check_out));
       let endKind = "";
       if (resolved.status === "leave_time" && end) endKind = "entered";
       else if (end) endKind = "actual";
@@ -332,6 +341,8 @@
     });
 
     // ponytail: incomplete days don't count toward banked — projection fills Thu/Fri
+    const holidayCount = perDay.filter((d) => d.status === "holiday").length;
+    const weekTarget = daily * (5 - holidayCount);
     const banked = perDay.reduce(
       (s, d) => s + (isSolid(d) ? d.hours || 0 : 0),
       0

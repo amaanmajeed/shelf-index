@@ -93,7 +93,7 @@ assert(summary.target === 30, "6h/day week target 30");
 assert(Math.abs(summary.needed - 12) < 0.01, "need 12, got " + summary.needed);
 assert(Math.abs(summary.perDay.find((d) => d.label === "Thu").hours - 6) < 0.01, "Thu 6h share");
 
-// Holiday on absent Fri banks full daily target
+// Holiday on absent Fri drops week target (36h), does not bank hours
 summary = OH.summarizeWeek(
   days2,
   { "2026-08-07": { holiday: true, hours: 9 } },
@@ -101,7 +101,40 @@ summary = OH.summarizeWeek(
 );
 const friH = summary.perDay.find((d) => d.label === "Fri");
 assert(friH.status === "holiday", "Fri holiday, got " + friH.status);
-assert(Math.abs(summary.banked - 45) < 0.01, "holiday banks 9 → 45, got " + summary.banked);
+assert(friH.hours === 0, "holiday hours 0, got " + friH.hours);
+assert(summary.target === 36, "1 holiday → 36h target, got " + summary.target);
+assert(Math.abs(summary.banked - 36) < 0.01, "banked 36 (no holiday credit), got " + summary.banked);
 assert(summary.needed === 0, "week met after holiday");
+assert(!friH.start && !friH.end, "holiday row has no start/end");
+
+// Thu now, Fri is_future — holiday must stick (not get projected)
+const thuNow = new Date("2026-08-06T12:00:00+05:00");
+const daysThu = [
+  { date: "2026-08-03", hours: 9, check_in: "2026-08-03 05:00:00", check_out: "2026-08-03 14:00:00" },
+  { date: "2026-08-04", hours: 9, check_in: "2026-08-04 05:00:00", check_out: "2026-08-04 14:00:00" },
+  { date: "2026-08-05", hours: 9, check_in: "2026-08-05 05:00:00", check_out: "2026-08-05 14:00:00" },
+  { date: "2026-08-06", hours: 9, check_in: "2026-08-06 05:00:00", check_out: "2026-08-06 14:00:00" },
+  { date: "2026-08-07", hours: 0, check_in: null, check_out: null, is_future: true },
+];
+summary = OH.summarizeWeek(daysThu, { "2026-08-07": { holiday: true } }, thuNow);
+const friFut = summary.perDay.find((d) => d.label === "Fri");
+assert(friFut.status === "holiday", "future Fri holiday, got " + friFut.status);
+assert(friFut.hours === 0, "holiday hours 0, got " + friFut.hours);
+assert(!friFut.start && !friFut.end, "holiday has no start/end");
+assert(summary.target === 36, "future holiday → 36h, got " + summary.target);
+assert(Math.abs(summary.banked - 36) < 0.01, "banked 36, got " + summary.banked);
+
+summary = OH.summarizeWeek(daysThu, { "2026-08-07": { holiday: true } }, thuNow, 6);
+assert(summary.target === 24, "6h/day + 1 holiday → 24h, got " + summary.target);
+assert(summary.perDay.find((d) => d.label === "Fri").hours === 0, "holiday hours stay 0");
+
+// Fri start override → entered start, leave computed from remaining
+summary = OH.summarizeWeek(daysThu, { "2026-08-07": { start: "11:00" } }, thuNow);
+const friS = summary.perDay.find((d) => d.label === "Fri");
+assert(friS.startKind === "entered", "Fri start entered, got " + friS.startKind);
+assert(friS.startLabel === "11:00 am", "Fri start 11am, got " + friS.startLabel);
+assert(friS.status === "projected", "Fri still projected, got " + friS.status);
+assert(Math.abs(friS.hours - 9) < 0.01, "Fri 9h remaining, got " + friS.hours);
+assert(friS.endLabel === "8:00 pm", "Fri leave 8pm from 11am+9h, got " + friS.endLabel);
 
 console.log("ok — projections:", summary.focus);

@@ -187,17 +187,22 @@
     };
   }
 
-  function timeEditorHtml(d, overrides) {
+  function timeEditorHtml(d, overrides, field) {
+    field = field || "leave";
     const o = overrides && overrides[d.key];
     const pref =
-      (o && o.leave) ||
-      (d.endKind === "projected" && d.end) ||
-      d.end ||
-      null;
+      field === "start"
+        ? (o && o.start) || d.start || null
+        : (o && o.leave) ||
+          (d.endKind === "projected" && d.end) ||
+          d.end ||
+          null;
     const s = splitEditorTime(pref);
     return (
       '<span class="si-time-edit" data-key="' +
       d.key +
+      '" data-field="' +
+      field +
       '">' +
       '<input class="si-hh" type="text" inputmode="numeric" maxlength="2" value="' +
       s.hh +
@@ -321,7 +326,7 @@
       const timeEd = e.target.closest(".si-time-edit");
       if (timeEd) {
         e.preventDefault();
-        saveLeave(timeEd.getAttribute("data-key")).catch((err) => {
+        saveTime(timeEd.getAttribute("data-key")).catch((err) => {
           if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
         });
         return;
@@ -374,7 +379,7 @@
     }
     const save = e.target.closest(".si-save");
     if (save) {
-      saveLeave(save.getAttribute("data-key")).catch((err) => {
+      saveTime(save.getAttribute("data-key")).catch((err) => {
         if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
       });
       return;
@@ -391,6 +396,15 @@
       markHoliday(holiday.getAttribute("data-key")).catch((err) => {
         if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
       });
+      return;
+    }
+    const unholiday = e.target.closest(".si-unholiday");
+    if (unholiday) {
+      clearOverride(unholiday.getAttribute("data-key"))
+        .then(() => refreshFromState())
+        .catch((err) => {
+          if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+        });
     }
   }
 
@@ -405,7 +419,7 @@
   }
 
   function wantsLeaveEditor(d) {
-    if (isFriday(d)) return false;
+    if (isFriday(d) || d.status === "holiday") return false;
     if (editingKey === d.key && (d.status === "leave_time" || d.checkIn))
       return true;
     if (skippedKeys[d.key]) return false;
@@ -416,14 +430,24 @@
   }
 
   function wantsHoursEditor(d) {
-    if (isFriday(d)) return false;
-    if (
-      editingKey === d.key &&
-      (d.status === "manual" || d.status === "holiday")
-    )
-      return true;
+    if (isFriday(d) || d.status === "holiday" || d.status === "projected")
+      return false;
+    if (editingKey === d.key && d.status === "manual") return true;
     if (skippedKeys[d.key]) return false;
     return d.status === "needs_hours" || (d.is_absent && !d.checkIn);
+  }
+
+  /** No Odoo check-in: enter start so leave can be projected (Thu/Fri, or any day you weren't there). */
+  function wantsStartEditor(d) {
+    if (d.status === "holiday" || d.checkIn) return false;
+    if (editingKey !== d.key || skippedKeys[d.key]) return false;
+    return (
+      d.status === "projected" ||
+      d.status === "future" ||
+      d.status === "missing" ||
+      d.startKind === "entered" ||
+      d.startKind === "projected"
+    );
   }
 
   async function renderPanel(summary) {
@@ -446,28 +470,50 @@
     syncDailyToggle(el, summary.dailyHours || lastDaily);
     const rows = summary.perDay
       .map((d) => {
+        if (d.status === "holiday") {
+          return (
+            '<tr class="si-holiday-row"><td>' +
+            d.label +
+            "</td>" +
+            timeCell("—", "") +
+            timeCell("—", "") +
+            "<td>" +
+            SI.formatHours(d.hours) +
+            '</td><td class="si-note">holiday <button type="button" class="si-unholiday" data-key="' +
+            d.key +
+            '" aria-label="Clear holiday">×</button></td></tr>'
+          );
+        }
         const leaveEd = wantsLeaveEditor(d);
         const hoursEd = !leaveEd && wantsHoursEditor(d);
+        const startEd = !leaveEd && !hoursEd && wantsStartEditor(d);
+        const startCell = startEd
+          ? '<td class="si-edit-cell">' +
+            timeEditorHtml(d, overrides, "start") +
+            "</td>"
+          : timeCell(d.startLabel, d.startKind);
         const endCell = leaveEd
-          ? '<td class="si-edit-cell">' + timeEditorHtml(d, overrides) + "</td>"
+          ? '<td class="si-edit-cell">' +
+            timeEditorHtml(d, overrides, "leave") +
+            "</td>"
           : timeCell(d.endLabel, d.endKind);
         const hoursCell = hoursEd
           ? '<td class="si-edit-cell">' + hoursEditorHtml(d, overrides) + "</td>"
           : "<td>" + SI.formatHours(d.hours) + "</td>";
-        const canEdit =
+        const canEditStart = !d.checkIn && (d.weekday === 4 || d.weekday === 5);
+        const canEditOther =
           !isFriday(d) &&
-          !leaveEd &&
-          !hoursEd &&
           (d.status === "leave_time" ||
             d.status === "manual" ||
-            d.status === "holiday" ||
             d.status === "needs_leave" ||
             d.status === "needs_hours" ||
             d.status === "projected" ||
             (d.missing_checkout && d.checkIn) ||
             (d.is_absent && !d.checkIn));
+        const canEdit =
+          !leaveEd && !hoursEd && !startEd && (canEditStart || canEditOther);
         const holidayBtn =
-          !leaveEd && !hoursEd && canMarkHoliday(d)
+          !hoursEd && canMarkHoliday(d)
             ? '<button type="button" class="si-holiday" data-key="' +
               d.key +
               '">Holiday</button>'
@@ -479,16 +525,14 @@
             holidayBtn
           : holidayBtn
             ? holidayBtn
-            : d.status === "holiday"
-              ? "holiday"
-              : d.status === "projected"
-                ? "projected"
-                : "";
+            : d.status === "projected"
+              ? "projected"
+              : "";
         return (
           "<tr><td>" +
           d.label +
           "</td>" +
-          timeCell(d.startLabel, d.startKind) +
+          startCell +
           endCell +
           hoursCell +
           '<td class="si-note">' +
@@ -567,6 +611,28 @@
     return summary;
   }
 
+  async function saveTime(key) {
+    const root = document.querySelector(
+      '.si-time-edit[data-key="' + key + '"]'
+    );
+    if (root && root.getAttribute("data-field") === "start") {
+      return saveStart(key);
+    }
+    return saveLeave(key);
+  }
+
+  async function saveStart(key) {
+    const raw = readTimeEdit(key);
+    const parsed = SI.parseUserTime(raw);
+    if (!parsed) {
+      window.alert("Invalid time.");
+      return;
+    }
+    await setOverride(key, { start: parsed.hhmm });
+    editingKey = null;
+    await refreshFromState();
+  }
+
   async function saveLeave(key) {
     const raw = readTimeEdit(key);
     const parsed = SI.parseUserTime(raw);
@@ -608,11 +674,19 @@
     const d =
       lastSummary && lastSummary.perDay.find((x) => x.key === key);
     if (!d || !canMarkHoliday(d)) return;
-    // ponytail: holiday banks a full daily target so the week doesn't demand make-up
-    await setOverride(key, { holiday: true, hours: lastDaily });
+    // ponytail: holiday drops the week target by one daily slice; hours stay 0
+    await setOverride(key, { holiday: true });
     editingKey = null;
     delete skippedKeys[key];
     await refreshFromState();
+  }
+
+  async function clearOverride(key) {
+    const overrides = await getOverrides();
+    delete overrides[key];
+    await storageSet({ [STORAGE_OVERRIDES]: overrides });
+    lastOverrides = overrides;
+    editingKey = null;
   }
 
   async function run() {
