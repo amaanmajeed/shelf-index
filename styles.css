@@ -127,6 +127,12 @@
   vertical-align: middle;
 }
 
+#shelf-index-panel .si-table tr > :nth-child(2),
+#shelf-index-panel .si-table tr > :nth-child(3),
+#shelf-index-panel .si-table tr > :nth-child(4) {
+  text-align: center;
+}
+
 #shelf-index-panel .si-note {
   color: #8a7040;
   font-size: 11px;

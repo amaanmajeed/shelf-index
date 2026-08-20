@@ -248,7 +248,7 @@
         ? overrides[d.key].hours
         : "";
     const holidayBtn = canMarkHoliday(d)
-      ? iconBtn("si-holiday", d.key, "Holiday", "fa-sun-o")
+      ? iconBtn("si-holiday", d.key, "Holiday", "fa-plane")
       : "";
     return (
       '<span class="si-hours-edit" data-key="' +
@@ -525,7 +525,7 @@
           !leaveEd && !hoursEd && !startEd && (canEditStart || canEditOther);
         const holidayBtn =
           !hoursEd && canMarkHoliday(d)
-            ? iconBtn("si-holiday", d.key, "Holiday", "fa-sun-o")
+            ? iconBtn("si-holiday", d.key, "Holiday", "fa-plane")
             : "";
         const note = canEdit
           ? iconBtn("si-edit", d.key, "Edit", "fa-pencil") + holidayBtn
