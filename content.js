@@ -275,6 +275,10 @@
     return !d.checkIn && !d.checkOut && d.status !== "holiday";
   }
 
+  const THEME_ICONS =
+    '<svg class="si-icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>' +
+    '<svg class="si-icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+
   function ensureNavBtn() {
     if (document.getElementById(NAV_ID)) return true;
     const systray = document.querySelector(".o_menu_systray");
@@ -286,16 +290,30 @@
     wrap.id = NAV_ID;
     wrap.className = "o_nav_entry d-flex align-items-center";
     wrap.innerHTML =
-      '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><i class="fa fa-clock-o"></i></a>';
-    wrap.querySelector("a").addEventListener("click", (e) => {
+      '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><i class="fa fa-clock-o"></i></a>' +
+      '<a href="#" class="si-nav-btn si-theme-btn d-flex align-items-center" title="Toggle light mode" role="button" aria-label="Toggle theme">' +
+      THEME_ICONS +
+      "</a>";
+    wrap.querySelector(".si-nav-btn:not(.si-theme-btn)").addEventListener("click", (e) => {
       e.preventDefault();
       run().catch((err) => {
         if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
       });
     });
+    wrap.querySelector(".si-theme-btn").addEventListener("click", (e) => {
+      e.preventDefault();
+      toggleTheme();
+    });
     if (bell) systray.insertBefore(wrap, bell);
     else systray.appendChild(wrap);
     return true;
+  }
+
+  function toggleTheme() {
+    if (!extAlive()) return;
+    chrome.storage.local.set({
+      shelfIndexDark: document.documentElement.classList.contains("si-light"),
+    });
   }
 
   function watchNav() {

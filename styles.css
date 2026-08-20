@@ -90,6 +90,17 @@
   opacity: 1;
 }
 
+.si-theme-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+#shelf-index-nav .si-theme-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
 #shelf-index-panel .si-ahead {
   color: #1f8a4c;
   font-weight: 600;
@@ -221,4 +232,568 @@
   text-decoration: none;
   padding: 0 10px;
   height: 46px;
+}
+
+html.si-light .si-icon-sun,
+html:not(.si-light) .si-icon-moon {
+  display: none;
+}
+
+/* Dark is the default (no class). `.si-light` restores the site. */
+html:not(.si-light) {
+  color-scheme: dark;
+  --si-bg: #16141f;
+  --si-surface: #1e1b2b;
+  --si-elevated: #262236;
+  --si-border: #3a3450;
+  --si-text: #ece8f4;
+  --si-muted: #a89fc0;
+  --si-purple: #71639e;
+  --si-accent: #c4b8e8;
+  --body-bg: #16141f;
+  --body-color: #ece8f4;
+  --bs-body-bg: #16141f;
+  --bs-body-color: #ece8f4;
+  --bs-border-color: #3a3450;
+  --bs-secondary-bg: #1e1b2b;
+  --bs-tertiary-bg: #262236;
+  --bs-list-group-bg: #262236;
+  --bs-list-group-color: #ece8f4;
+  --bs-list-group-border-color: #3a3450;
+  --secondary-bg: #262236;
+  background-color: var(--si-bg);
+
+  &::selection {
+    background: #71639e;
+    color: #fff;
+  }
+
+  body,
+  .o_web_client,
+  .o_action_manager,
+  .o_action,
+  .o_content,
+  .o_view_controller,
+  .o_form_sheet_bg,
+  .oh_dashboards,
+  .container-fluid.o_hr_dashboard {
+    background-color: var(--si-bg) !important;
+    color: var(--si-text) !important;
+    color-scheme: dark;
+  }
+
+  .o_main_navbar {
+    background: var(--si-purple) !important;
+    border-bottom-color: #5a4f7f !important;
+    color: #fff;
+  }
+
+  .o_control_panel,
+  .o_cp_top,
+  .o_form_sheet,
+  .o_form_statusbar,
+  .o_notebook,
+  .o_kanban_record,
+  .o_list_renderer,
+  .o_list_table,
+  .o_searchview,
+  .o_searchview_facet,
+  .o_calendar_view,
+  .o_pivot,
+  .o_graph_view,
+  .modal-content,
+  .modal-header,
+  .modal-footer,
+  .dropdown-menu,
+  .o-dropdown--menu,
+  .fullscreen-menu,
+  .popover,
+  .o_popover,
+  .o_dialog,
+  .o_notification,
+  .o_chatter,
+  .o-mail-Chatter,
+  .o-mail-Chatter-top,
+  .o-mail-Chatter-content,
+  .o-mail-ChatterContainer,
+  .o-mail-Form-chatter,
+  .o-mail-Discuss,
+  .o-mail-DiscussSidebar,
+  .o-mail-Message,
+  .card,
+  .bg-white,
+  .bg-view,
+  .bg-light,
+  .oh-card,
+  .leave-manager,
+  .hr-chart-1,
+  .hr_notification,
+  .monthly_leave_graph_view .oh-card,
+  .broad_factor_graph .oh-card,
+  .monthly_leave_trend .oh-card,
+  .user_expense .oh-card,
+  .user_leaves .oh-card,
+  .user_attendance .oh-card,
+  .projects .oh-card {
+    background-color: var(--si-surface) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .nav-container {
+    background: none !important;
+  }
+
+  .hr_notification-head {
+    background: var(--si-surface) !important;
+    color: var(--si-text) !important;
+    border-bottom-color: var(--si-border) !important;
+  }
+
+  .o_timeoff_dashboard,
+  .o_timeoff_dashboard_cards,
+  .o_timeoff_card,
+  .o_timeoff_calendar,
+  .o_calendar_renderer,
+  .o_calendar_container,
+  .o_calendar_wrapper,
+  .o_calendar_sidebar,
+  .o_calendar_sidebar_container,
+  .o_search_panel,
+  .fc,
+  .fc-view,
+  .fc-view-harness,
+  .fc-scrollgrid,
+  .fc-daygrid-body,
+  .fc-multimonth,
+  .fc-multimonth-month {
+    background-color: var(--si-bg) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+    --fc-page-bg-color: var(--si-bg);
+    --fc-neutral-bg-color: var(--si-surface);
+    --fc-border-color: var(--si-border);
+    --fc-today-bg-color: rgba(113, 99, 158, 0.18);
+    --fc-neutral-text-color: var(--si-muted);
+    --o-cw-border-color: var(--si-border);
+  }
+
+  .o_calendar_widget {
+    --fc-page-bg-color: var(--si-bg);
+  }
+
+  .fc-daygrid-day-frame,
+  .fc-scrollgrid-sync-inner {
+    background: none !important;
+  }
+
+  /* weekends + public holidays: Odoo uses light grey that vanishes on dark */
+  .o_calendar_widget .o_calendar_disabled,
+  .fc-daygrid-day.o_calendar_disabled {
+    background-color: rgba(113, 99, 158, 0.32) !important;
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 5px,
+      rgba(0, 0, 0, 0.28) 5px,
+      rgba(0, 0, 0, 0.28) 7px
+    ) !important;
+  }
+
+  .o_calendar_disabled .fc-daygrid-day-number {
+    color: #b7aed4 !important;
+    font-weight: 600;
+  }
+
+  .fc-bg-event {
+    opacity: 1 !important;
+    filter: saturate(1.45) brightness(1.2);
+  }
+
+  .o_timeoff_dashboard,
+  .o_timeoff_card {
+    background-color: var(--si-surface) !important;
+  }
+
+  .o_calendar_filter h5,
+  .o_calendar_header h5,
+  h5.d-inline-flex.ps-lg-2,
+  .o_calendar_filter,
+  .o_calendar_filter li,
+  .o_calendar_filter strong,
+  .o_cw_filter_label,
+  .o_cw_filter_title {
+    color: var(--si-text) !important;
+  }
+  .o_timeoff_card .o_timeoff_name,
+  .fc-toolbar-title,
+  .fc-multimonth-title,
+  .fc-col-header-cell,
+  .fc-daygrid-day-number {
+    color: var(--si-text) !important;
+  }
+
+  .fc-daygrid-day:has(.fc-bg-event) .fc-daygrid-day-number {
+    color: var(--si-bg) !important;
+    font-weight: 700;
+  }
+
+  .o_calendar_widget {
+    --o-cw-color: var(--si-text);
+  }
+
+  /* Odoo year-view hover chip: light fill + black text, loaded after us */
+  .o_calendar_renderer .o_calendar_widget .fc-dayGridYear-view:not(.fc-readonly-year-view) .fc-daygrid-body tr .fc-day .fc-daygrid-day-top:hover > .fc-daygrid-day-number {
+    --o-cw-color: #fff !important;
+    --o-cw-bg: var(--si-purple) !important;
+    color: #fff !important;
+    background: var(--si-purple) !important;
+  }
+
+  .o_calendar_renderer .o_calendar_widget .fc-dayGridYear-view > .fc-month-container > .fc-month .fc-dayGridMonth-view .fc-has-event {
+    background-color: rgba(113, 99, 158, 0.28) !important;
+  }
+
+  .o_datetime_picker,
+  .o_datetime_picker .btn,
+  .o_datetime_picker .o_datetime_button {
+    color: var(--si-text) !important;
+    background-color: transparent;
+  }
+
+  .o_datetime_picker .o_week_number_cell {
+    color: var(--si-muted) !important;
+  }
+
+  .o_datetime_picker .o_selected,
+  .o_datetime_picker .o_datetime_button.o_selected {
+    color: #fff !important;
+    background: var(--si-purple) !important;
+  }
+
+  .o_datetime_picker .o_select_start,
+  .o_datetime_picker .o_select_end {
+    --selected-day-color: var(--si-purple);
+    color: var(--si-text) !important;
+    background-color: rgba(113, 99, 158, 0.35) !important;
+  }
+
+  .employee-prof,
+  .employee-prof .oh-card {
+    background-color: #3e6282 !important;
+    color: #fff !important;
+  }
+
+  .dropdown-item:hover,
+  .dropdown-item:focus {
+    background-color: rgba(113, 99, 158, 0.18) !important;
+    color: var(--si-text) !important;
+  }
+
+  .dropdown-menu,
+  .o-dropdown--menu,
+  .modal-content,
+  .popover,
+  .o_popover,
+  .o_cw_popover,
+  .o-tooltip {
+    --popover-bg: var(--si-elevated);
+    --popover-header-color: var(--si-text);
+    --popover-header-bg: var(--si-surface);
+    --popover-body-color: var(--si-text);
+    --popover-border-color: var(--si-border);
+    --tooltip-bg: var(--si-elevated);
+    --tooltip-color: var(--si-text);
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .popover-header,
+  .popover-body,
+  .o_cw_body,
+  .o_cw_popover,
+  .o_cw_popover_holidays,
+  .o_cw_popover h5,
+  .o_cw_popover .card-header,
+  .o_cw_popover .card-header .popover-header,
+  .o_cw_popover .card-body,
+  .o_cw_popover .card-footer,
+  .o_cw_popover .list-group-item,
+  .o_cw_popover .o_cw_popover_close,
+  .list-group-item {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .table,
+  table {
+    color: inherit;
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--si-text);
+    --bs-table-border-color: var(--si-border);
+    --bs-table-striped-bg: rgba(113, 99, 158, 0.08);
+    --bs-table-hover-bg: rgba(113, 99, 158, 0.14);
+  }
+
+  .o_form_statusbar {
+    background-color: var(--si-surface) !important;
+    color: var(--si-text) !important;
+    --o-statusbar-border: var(--si-elevated);
+    --o-statusbar-background-active: #3d3458;
+    --o-statusbar-border-active: var(--si-purple);
+    --o-statusbar-background-hover: var(--si-elevated);
+  }
+
+  .o_form_statusbar .o_arrow_button {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o_form_statusbar .o_arrow_button_current,
+  .o_form_statusbar .o_arrow_button.btn-primary {
+    background-color: var(--si-purple) !important;
+    color: #fff !important;
+  }
+
+  .o_form_view .oe_title,
+  .fw-bold.text-truncate {
+    color: var(--si-text) !important;
+  }
+
+  .o-mail-Chatter-top.shadow-sm {
+    background-image: none !important;
+  }
+
+  .o_list_renderer {
+    --ListRenderer-thead-bg-color: var(--si-surface);
+    --ListRenderer-tfoot-bg-color: var(--si-surface);
+    --ListRenderer-thead-border-end-color: var(--si-border);
+  }
+
+  .o_list_renderer .o_list_table {
+    --table-bg: var(--si-bg);
+    --table-color: var(--si-text);
+    --bs-table-bg: var(--si-bg);
+    --bs-table-color: var(--si-text);
+    background-color: var(--si-bg) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o_list_renderer .o_list_table thead th,
+  .o_list_renderer .o_list_actions_header {
+    background-color: var(--si-surface) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o_list_renderer .o_group_header,
+  .o_list_renderer .o_group_header > th,
+  .o_list_renderer .o_group_header > td {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o_searchview,
+  .o_searchview_facet,
+  .bg-200 {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .o_list_renderer .o_data_row:hover > td,
+  .o_list_renderer .o_data_row:nth-child(odd) > td {
+    background-color: transparent !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .o_list_renderer .o_data_row:hover > td {
+    background-color: rgba(113, 99, 158, 0.14) !important;
+  }
+
+  td,
+  th {
+    border-color: var(--si-border) !important;
+    color: inherit;
+  }
+
+  .o_form_label,
+  .o_td_label,
+  .o_horizontal_separator,
+  .breadcrumb,
+  .o_breadcrumb,
+  .o_last_breadcrumb_item {
+    color: var(--si-text) !important;
+  }
+
+  .text-black,
+  .text-dark,
+  .text-body,
+  .text-color,
+  .text-900,
+  .stat_head,
+  .user_expense .stat_head,
+  .user_leaves .stat_head,
+  .user_attendance .stat_head,
+  .projects .stat_head,
+  .expense_table,
+  .leaves_table,
+  .attendance_table,
+  .projects_table,
+  h4 .stat-count {
+    color: var(--si-text) !important;
+  }
+
+  .text-muted,
+  .text-500,
+  .hr_notification p {
+    color: var(--si-muted) !important;
+  }
+
+  .stat-digit,
+  .stat-count,
+  .stat-title,
+  .hr_birthday,
+  .stat-head {
+    color: var(--si-accent) !important;
+  }
+
+  a:not(.btn):not(.si-nav-btn):not(.o_nav_entry):not(.dropdown-toggle) {
+    color: var(--si-accent);
+  }
+
+  .o_main_navbar a {
+    color: inherit;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,
+  select,
+  .o_input,
+  .form-control,
+  .form-select {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .btn-secondary,
+  .btn-light,
+  .btn-outline-secondary {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  .btn-primary {
+    background-color: var(--si-purple) !important;
+    border-color: var(--si-purple) !important;
+    color: #fff !important;
+  }
+
+  .user_expense .stat_head,
+  .user_leaves .stat_head,
+  .user_attendance .stat_head,
+  .projects .stat_head,
+  .hr_notification .media {
+    border-color: var(--si-border) !important;
+  }
+
+  .axis path,
+  .axis line {
+    stroke: var(--si-muted);
+  }
+
+  .axis text,
+  .tick text,
+  .attendance_graph text,
+  .broad_factor_graph text,
+  .monthly_leave_trend text,
+  .monthly_leave_graph_view text {
+    fill: var(--si-text) !important;
+  }
+
+  /* d3 sets these inline (lightsteelblue + black); !important wins */
+  #attendance-chart-tooltip,
+  .attendance_graph #tooltip {
+    background: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+    border-color: var(--si-border) !important;
+  }
+
+  #broad_factor_pdf {
+    background-color: var(--si-surface) !important;
+    color: #4ec3b7 !important;
+  }
+
+  #shelf-index-panel {
+    background: var(--si-surface);
+    color: var(--si-text);
+    border-color: var(--si-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  #shelf-index-panel .si-mode {
+    border-color: var(--si-border);
+  }
+
+  #shelf-index-panel .si-mode .si-daily {
+    background: var(--si-elevated);
+    color: var(--si-text);
+  }
+
+  #shelf-index-panel .si-mode .si-daily + .si-daily {
+    border-left-color: var(--si-border);
+  }
+
+  #shelf-index-panel .si-mode .si-daily-on {
+    background: var(--si-purple);
+    color: #fff;
+  }
+
+  #shelf-index-panel button {
+    background: var(--si-elevated);
+    color: var(--si-text);
+    border-color: var(--si-border);
+  }
+
+  #shelf-index-panel .si-focus,
+  #shelf-index-panel .si-holiday-row {
+    background: var(--si-elevated);
+    color: var(--si-muted);
+  }
+
+  #shelf-index-panel .si-table th,
+  #shelf-index-panel .si-table td {
+    border-bottom-color: var(--si-border);
+  }
+
+  #shelf-index-panel .si-hh,
+  #shelf-index-panel .si-mm,
+  #shelf-index-panel .si-hours,
+  #shelf-index-panel .si-mer {
+    background: var(--si-bg);
+    border-color: var(--si-border);
+    color: var(--si-text);
+  }
+
+  #shelf-index-panel .si-even,
+  #shelf-index-panel .si-holiday-row .si-note {
+    color: var(--si-muted);
+  }
+
+  #shelf-index-panel .si-ahead,
+  #shelf-index-panel .si-entered {
+    color: #5dcea0;
+  }
+
+  #shelf-index-panel .si-behind {
+    color: #e07a72;
+  }
+
+  #shelf-index-panel .si-projected {
+    color: #e0b44a;
+  }
 }

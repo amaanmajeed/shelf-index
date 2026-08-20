@@ -24,8 +24,13 @@
   "content_scripts": [
     {
       "matches": ["https://odoo.codingcops.com/*"],
-      "js": ["hours.js", "content.js"],
+      "js": ["theme.js"],
       "css": ["styles.css"],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://odoo.codingcops.com/*"],
+      "js": ["hours.js", "content.js"],
       "run_at": "document_idle"
     }
   ]

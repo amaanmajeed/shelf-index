@@ -4,25 +4,50 @@
     <meta charset="utf-8" />
     <title>Shelf Index</title>
     <style>
+      :root {
+        --bg: #16141f;
+        --card: #1e1b2b;
+        --text: #ece8f4;
+        --muted: #a89fc0;
+        --border: #3a3450;
+        --purple: #71639e;
+      }
+      body.si-light {
+        --bg: #ffffff;
+        --card: #f3f5f9;
+        --text: #1a1f2e;
+        --muted: #666;
+        --border: #d0d5e0;
+      }
       body {
         font: 13px/1.4 system-ui, sans-serif;
-        margin: 12px;
+        margin: 0;
         min-width: 260px;
-        color: #1a1f2e;
+        padding: 12px;
+        color: var(--text);
+        background: var(--bg);
       }
       button {
         width: 100%;
         padding: 8px;
         margin-top: 8px;
         cursor: pointer;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--card);
+        color: var(--text);
+      }
+      button:hover {
+        border-color: var(--purple);
       }
       #status {
         margin-top: 10px;
         white-space: pre-wrap;
       }
       .muted {
-        color: #666;
+        color: var(--muted);
         font-size: 12px;
+        margin: 4px 0 0;
       }
     </style>
   </head>

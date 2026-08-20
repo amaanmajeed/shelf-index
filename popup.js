@@ -35,8 +35,19 @@ function showLast(last) {
       : "");
 }
 
-chrome.storage.local.get(["shelfIndexLastResult"], (r) => {
+const THEME_KEY = "shelfIndexDark";
+
+function paintTheme(dark) {
+  document.body.classList.toggle("si-light", !dark);
+}
+
+chrome.storage.local.get(["shelfIndexLastResult", THEME_KEY], (r) => {
   showLast(r.shelfIndexLastResult);
+  paintTheme(r[THEME_KEY] !== false);
+});
+
+chrome.storage.onChanged.addListener((ch, area) => {
+  if (area === "local" && THEME_KEY in ch) paintTheme(ch[THEME_KEY].newValue !== false);
 });
 
 document.getElementById("clear").addEventListener("click", async () => {
@@ -48,6 +59,7 @@ document.getElementById("clear").addEventListener("click", async () => {
       await chrome.tabs.sendMessage(tab.id, { type: "shelfIndexClear" });
     } catch (_e) {}
   }
+  paintTheme(true);
   document.getElementById("status").textContent = "Cleared.";
 });
 
