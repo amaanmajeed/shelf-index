@@ -187,6 +187,23 @@
     };
   }
 
+  /** Icon button — Odoo already loads Font Awesome. */
+  function iconBtn(cls, key, label, fa) {
+    return (
+      '<button type="button" class="si-icon ' +
+      cls +
+      '" data-key="' +
+      key +
+      '" title="' +
+      label +
+      '" aria-label="' +
+      label +
+      '"><i class="fa ' +
+      fa +
+      '"></i></button>'
+    );
+  }
+
   function timeEditorHtml(d, overrides, field) {
     field = field || "leave";
     const o = overrides && overrides[d.key];
@@ -219,12 +236,8 @@
       (s.mer === "pm" ? " selected" : "") +
       ">pm</option>" +
       "</select>" +
-      '<button type="button" class="si-save" data-key="' +
-      d.key +
-      '">Save</button>' +
-      '<button type="button" class="si-cancel" data-key="' +
-      d.key +
-      '" aria-label="Cancel">×</button>' +
+      iconBtn("si-save", d.key, "Save", "fa-check") +
+      iconBtn("si-cancel", d.key, "Cancel", "fa-times") +
       "</span>"
     );
   }
@@ -235,9 +248,7 @@
         ? overrides[d.key].hours
         : "";
     const holidayBtn = canMarkHoliday(d)
-      ? '<button type="button" class="si-holiday" data-key="' +
-        d.key +
-        '">Holiday</button>'
+      ? iconBtn("si-holiday", d.key, "Holiday", "fa-sun-o")
       : "";
     return (
       '<span class="si-hours-edit" data-key="' +
@@ -246,15 +257,17 @@
       '<input class="si-hours" type="text" inputmode="decimal" value="' +
       prev +
       '" placeholder="hrs" aria-label="Hours">' +
-      '<button type="button" class="si-save-hours" data-key="' +
-      d.key +
-      '">Save</button>' +
+      iconBtn("si-save-hours", d.key, "Save", "fa-check") +
       holidayBtn +
-      '<button type="button" class="si-cancel" data-key="' +
-      d.key +
-      '" aria-label="Cancel">×</button>' +
+      iconBtn("si-cancel", d.key, "Cancel", "fa-times") +
       "</span>"
     );
+  }
+
+  function formatVsToday(h) {
+    if (h == null || isNaN(h)) return "";
+    const s = SI.formatHours(h);
+    return (h > 0 ? "+" : "") + s;
   }
 
   /** Holiday only when neither check-in nor check-out exists. */
@@ -304,8 +317,8 @@
       '<button type="button" class="si-daily si-daily-on" data-daily="9">9h</button>' +
       '<button type="button" class="si-daily" data-daily="6">6h</button>' +
       "</span>" +
-      '<button type="button" class="si-refresh">Refresh</button>' +
-      '<button type="button" class="si-close" aria-label="Close">×</button></div>' +
+      '<button type="button" class="si-icon si-refresh" title="Refresh" aria-label="Refresh"><i class="fa fa-refresh"></i></button>' +
+      '<button type="button" class="si-icon si-close" title="Close" aria-label="Close"><i class="fa fa-times"></i></button></div>' +
       '<div class="si-body">Loading…</div>';
     document.documentElement.appendChild(el);
     el.querySelector(".si-close").addEventListener("click", () => el.remove());
@@ -477,9 +490,9 @@
             timeCell("—", "") +
             "<td>" +
             SI.formatHours(d.hours) +
-            '</td><td class="si-note">holiday <button type="button" class="si-unholiday" data-key="' +
-            d.key +
-            '" aria-label="Clear holiday">×</button></td></tr>'
+            '</td><td class="si-note">holiday ' +
+            iconBtn("si-unholiday", d.key, "Clear holiday", "fa-times") +
+            "</td></tr>"
           );
         }
         const leaveEd = wantsLeaveEditor(d);
@@ -512,15 +525,10 @@
           !leaveEd && !hoursEd && !startEd && (canEditStart || canEditOther);
         const holidayBtn =
           !hoursEd && canMarkHoliday(d)
-            ? '<button type="button" class="si-holiday" data-key="' +
-              d.key +
-              '">Holiday</button>'
+            ? iconBtn("si-holiday", d.key, "Holiday", "fa-sun-o")
             : "";
         const note = canEdit
-          ? '<button type="button" class="si-edit" data-key="' +
-            d.key +
-            '">Edit</button>' +
-            holidayBtn
+          ? iconBtn("si-edit", d.key, "Edit", "fa-pencil") + holidayBtn
           : holidayBtn
             ? holidayBtn
             : d.status === "projected"
@@ -539,6 +547,17 @@
         );
       })
       .join("");
+    const vs = summary.vsToday;
+    const vsCls =
+      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even";
+    const vsHtml =
+      vs == null || isNaN(vs)
+        ? ""
+        : ' · <span class="' +
+          vsCls +
+          '" title="vs completed days (check-in + check-out)">' +
+          formatVsToday(vs) +
+          "</span>";
     el.querySelector(".si-body").innerHTML =
       '<p class="si-focus">' +
       summary.focus +
@@ -549,7 +568,9 @@
       summary.target +
       "h · Remaining <b>" +
       SI.formatHours(summary.needed) +
-      "</b></p>" +
+      "</b>" +
+      vsHtml +
+      "</p>" +
       '<table class="si-table"><thead><tr><th>Day</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr></thead><tbody>' +
       rows +
       "</tbody></table>";
@@ -579,6 +600,8 @@
       [STORAGE_LAST]: {
         banked: summary.banked,
         needed: summary.needed,
+        vsToday: summary.vsToday,
+        target: summary.target,
         focus: summary.focus,
         weekStart: summary.weekStart,
         perDay: summary.perDay,
@@ -736,6 +759,8 @@
             ok: true,
             banked: s.banked,
             needed: s.needed,
+            vsToday: s.vsToday,
+            target: s.target,
             focus: s.focus,
           })
         )

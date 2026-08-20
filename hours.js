@@ -353,6 +353,16 @@
     const todayWd = weekdayMon1(now);
     const tips = applyProjections(perDay, needed, todayWd) || [];
 
+    // pace vs completed days only (both check-in + check-out / entered leave / manual)
+    const doneCount = perDay.filter(
+      (d) =>
+        d.status === "ok" ||
+        d.status === "leave_time" ||
+        d.status === "manual"
+    ).length;
+    const expectedByToday = daily * doneCount;
+    const vsToday = banked - expectedByToday;
+
     let focus =
       "Banked " + formatHours(banked) + " · Need " + formatHours(needed) + " by Friday";
     if (needed <= 0) {
@@ -367,6 +377,8 @@
       needed,
       target: weekTarget,
       dailyHours: daily,
+      expectedByToday,
+      vsToday,
       todayKey,
       todayWd,
       perDay,

@@ -18,12 +18,18 @@ function showLast(last) {
     el.textContent = "No index yet. Open the workspace page and refresh.";
     return;
   }
+  const vs =
+    last.vsToday == null || isNaN(last.vsToday)
+      ? ""
+      : " · " + (last.vsToday > 0 ? "+" : "") + fmt(last.vsToday);
   el.textContent =
     (last.focus || "") +
     "\n\nBanked " +
     fmt(last.banked) +
-    " · Need " +
+    (last.target != null ? " / " + last.target + "h" : "") +
+    " · Remaining " +
     fmt(last.needed) +
+    vs +
     (last.updatedAt
       ? "\nUpdated " + new Date(last.updatedAt).toLocaleString()
       : "");
@@ -79,8 +85,12 @@ document.getElementById("analyze").addEventListener("click", async () => {
       res.focus +
       "\n\nBanked " +
       fmt(res.banked) +
-      " · Need " +
-      fmt(res.needed);
+      (res.target != null ? " / " + res.target + "h" : "") +
+      " · Remaining " +
+      fmt(res.needed) +
+      (res.vsToday == null || isNaN(res.vsToday)
+        ? ""
+        : " · " + (res.vsToday > 0 ? "+" : "") + fmt(res.vsToday));
   } catch (e) {
     status.textContent =
       "Could not reach the page script. Reload the tab and try again.\n" +

@@ -64,9 +64,45 @@
 #shelf-index-panel .si-close {
   border: none;
   background: transparent;
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
-  padding: 0 4px;
+  padding: 2px 4px;
+}
+
+#shelf-index-panel .si-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  padding: 2px;
+  margin-left: 2px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  line-height: 1;
+  vertical-align: middle;
+  opacity: 0.7;
+  color: inherit;
+}
+
+#shelf-index-panel .si-icon:hover {
+  opacity: 1;
+}
+
+#shelf-index-panel .si-ahead {
+  color: #1f8a4c;
+  font-weight: 600;
+}
+
+#shelf-index-panel .si-behind {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+#shelf-index-panel .si-even {
+  color: #6a7385;
+  font-weight: 600;
 }
 
 #shelf-index-panel .si-focus {
@@ -124,10 +160,7 @@
 #shelf-index-panel .si-edit,
 #shelf-index-panel .si-holiday,
 #shelf-index-panel .si-unholiday {
-  margin-left: 4px;
-  padding: 0 6px;
-  font-size: 11px;
-  vertical-align: middle;
+  margin-left: 2px;
 }
 
 #shelf-index-panel .si-time-edit,
@@ -167,30 +200,6 @@
   font-size: 12px;
   line-height: 1.2;
   box-sizing: border-box;
-}
-
-#shelf-index-panel .si-save,
-#shelf-index-panel .si-save-hours,
-#shelf-index-panel .si-holiday,
-#shelf-index-panel .si-unholiday,
-#shelf-index-panel .si-cancel {
-  padding: 2px 6px;
-  font-size: 11px;
-}
-
-#shelf-index-panel .si-cancel,
-#shelf-index-panel .si-unholiday {
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 4px;
-  opacity: 0.75;
-}
-
-#shelf-index-panel .si-cancel:hover,
-#shelf-index-panel .si-unholiday:hover {
-  opacity: 1;
 }
 
 #shelf-index-nav,

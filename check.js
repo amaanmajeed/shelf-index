@@ -154,4 +154,36 @@ assert(friS.status === "projected", "Fri still projected, got " + friS.status);
 assert(Math.abs(friS.hours - 9) < 0.01, "Fri 9h remaining, got " + friS.hours);
 assert(friS.endLabel === "8:00 pm", "Fri leave 8pm from 11am+9h, got " + friS.endLabel);
 
+// Pace: only completed days (check-in+out). Fri noon, Mon–Thu done → expected 36, even
+summary = OH.summarizeWeek(days2, {}, now);
+assert(Math.abs(summary.expectedByToday - 36) < 0.01, "Fri expected 36 (4 done), got " + summary.expectedByToday);
+assert(Math.abs(summary.vsToday) < 0.01, "Fri vsToday 0, got " + summary.vsToday);
+
+// Wed noon, Mon–Tue done, Wed still open → expected 18, even
+summary = OH.summarizeWeek(daysWed, {}, wedNow);
+assert(Math.abs(summary.expectedByToday - 18) < 0.01, "Wed expected 18 (2 done), got " + summary.expectedByToday);
+assert(Math.abs(summary.vsToday) < 0.01, "Wed vsToday 0, got " + summary.vsToday);
+
+// Thu: Mon–Wed done 27:51 → expected 27, +0:51 (Thu projected ignored)
+const thuPace = new Date("2026-08-06T12:00:00+05:00");
+const daysPace = [
+  { date: "2026-08-03", hours: 9.81667, check_in: "2026-08-03 08:35:00", check_out: "2026-08-03 18:24:00" },
+  { date: "2026-08-04", hours: 8.95, check_in: "2026-08-04 08:56:00", check_out: "2026-08-04 17:53:00" },
+  { date: "2026-08-05", hours: 9.08333, check_in: "2026-08-05 08:33:00", check_out: "2026-08-05 17:39:00" },
+  { date: "2026-08-06", hours: 0, check_in: "2026-08-06 09:11:00", check_out: null, missing_checkout: true },
+  { date: "2026-08-07", hours: 0, check_in: null, check_out: null, is_future: true },
+];
+summary = OH.summarizeWeek(daysPace, {}, thuPace);
+assert(Math.abs(summary.banked - 27.85) < 0.02, "banked ~27:51, got " + summary.banked);
+assert(Math.abs(summary.expectedByToday - 27) < 0.01, "Thu expected 27 (3 done), got " + summary.expectedByToday);
+assert(Math.abs(summary.vsToday - 0.85) < 0.02, "Thu vsToday +0:51, got " + summary.vsToday);
+
+// Holiday Mon: only Tue done so far on Wed → expected 9
+summary = OH.summarizeWeek(
+  daysWed,
+  { "2026-08-03": { holiday: true } },
+  wedNow
+);
+assert(Math.abs(summary.expectedByToday - 9) < 0.01, "holiday Mon → expected 9 (Tue only), got " + summary.expectedByToday);
+
 console.log("ok — projections:", summary.focus);
