@@ -23,8 +23,7 @@ function showLast(last) {
       ? ""
       : " · " + (last.vsToday > 0 ? "+" : "") + fmt(last.vsToday);
   el.textContent =
-    (last.focus || "") +
-    "\n\nBanked " +
+    "Banked " +
     fmt(last.banked) +
     (last.target != null ? " / " + last.target + "h" : "") +
     " · Remaining " +
@@ -94,8 +93,7 @@ document.getElementById("analyze").addEventListener("click", async () => {
       return;
     }
     status.textContent =
-      res.focus +
-      "\n\nBanked " +
+      "Banked " +
       fmt(res.banked) +
       (res.target != null ? " / " + res.target + "h" : "") +
       " · Remaining " +

@@ -33,5 +33,11 @@
       "js": ["hours.js", "content.js"],
       "run_at": "document_idle"
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/shelf-index.svg"],
+      "matches": ["https://odoo.codingcops.com/*"]
+    }
   ]
 }

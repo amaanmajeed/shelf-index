@@ -101,6 +101,12 @@
   height: 16px;
 }
 
+#shelf-index-nav .si-nav-logo {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
 #shelf-index-panel .si-ahead {
   color: #1f8a4c;
   font-weight: 600;
@@ -113,14 +119,6 @@
 
 #shelf-index-panel .si-even {
   color: #6a7385;
-  font-weight: 600;
-}
-
-#shelf-index-panel .si-focus {
-  margin: 0 0 8px;
-  padding: 8px;
-  background: #f3f5f9;
-  border-radius: 4px;
   font-weight: 600;
 }
 
@@ -759,7 +757,6 @@ html:not(.si-light) {
     border-color: var(--si-border);
   }
 
-  #shelf-index-panel .si-focus,
   #shelf-index-panel .si-holiday-row {
     background: var(--si-elevated);
     color: var(--si-muted);

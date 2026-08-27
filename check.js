@@ -203,4 +203,4 @@ summary = OH.summarizeWeek(
 );
 assert(Math.abs(summary.expectedByToday - 9) < 0.01, "holiday Mon → expected 9 (Tue only), got " + summary.expectedByToday);
 
-console.log("ok — projections:", summary.focus);
+console.log("ok — projections:", summary.needed.toFixed(2) + "h needed, target " + summary.target);

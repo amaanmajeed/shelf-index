@@ -290,7 +290,9 @@
     wrap.id = NAV_ID;
     wrap.className = "o_nav_entry d-flex align-items-center";
     wrap.innerHTML =
-      '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><i class="fa fa-clock-o"></i></a>' +
+      '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><img class="si-nav-logo" src="' +
+      chrome.runtime.getURL("icons/shelf-index.svg") +
+      '" alt="" width="20" height="20" /></a>' +
       '<a href="#" class="si-nav-btn si-theme-btn d-flex align-items-center" title="Toggle light mode" role="button" aria-label="Toggle theme">' +
       THEME_ICONS +
       "</a>";
@@ -577,9 +579,6 @@
           formatVsToday(vs) +
           "</span>";
     el.querySelector(".si-body").innerHTML =
-      '<p class="si-focus">' +
-      summary.focus +
-      "</p>" +
       "<p>Banked <b>" +
       SI.formatHours(summary.banked) +
       "</b> / " +
@@ -620,7 +619,6 @@
         needed: summary.needed,
         vsToday: summary.vsToday,
         target: summary.target,
-        focus: summary.focus,
         weekStart: summary.weekStart,
         perDay: summary.perDay,
         updatedAt: Date.now(),
@@ -779,7 +777,6 @@
             needed: s.needed,
             vsToday: s.vsToday,
             target: s.target,
-            focus: s.focus,
           })
         )
         .catch((e) =>

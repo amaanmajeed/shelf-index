@@ -262,7 +262,6 @@
     );
     if (!slots.length) return;
     const share = needed / slots.length;
-    const tips = [];
     slots.forEach((d) => {
       if (!d.start) {
         d.start = defaultStartFor(perDay, d.key);
@@ -274,9 +273,7 @@
       d.endKind = "projected";
       d.hours = share;
       d.status = "projected";
-      tips.push(d.label + " leave " + d.endLabel);
     });
-    return tips;
   }
 
   /**
@@ -352,7 +349,7 @@
     const needed = Math.max(0, weekTarget - banked);
     const todayKey = dateKey(now);
     const todayWd = weekdayMon1(now);
-    const tips = applyProjections(perDay, needed, todayWd) || [];
+    applyProjections(perDay, needed, todayWd);
 
     // pace vs completed days only (both check-in + check-out / entered leave / manual)
     const doneCount = perDay.filter(
@@ -363,14 +360,6 @@
     ).length;
     const expectedByToday = daily * doneCount;
     const vsToday = banked - expectedByToday;
-
-    let focus =
-      "Banked " + formatHours(banked) + " · Need " + formatHours(needed) + " by Friday";
-    if (needed <= 0) {
-      focus = "Week target met (" + weekTarget + "h)";
-    } else if (tips.length) {
-      focus = tips.join(" · ") + " (to hit " + weekTarget + "h)";
-    }
 
     return {
       weekStart: keys[0],
@@ -383,7 +372,6 @@
       todayKey,
       todayWd,
       perDay,
-      focus,
       formatHours,
     };
   }
