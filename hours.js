@@ -193,9 +193,10 @@
       }
     }
 
-    if (day.missing_checkout && checkIn && !override) {
+    // Odoo often omits missing_checkout while you're still clocked in (hours: 0)
+    if (checkIn && !checkOut) {
       return {
-        hours: day.hours > 0 ? +day.hours : 0,
+        hours: 0,
         status: "needs_leave",
         checkIn,
         leave: null,

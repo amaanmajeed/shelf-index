@@ -46,6 +46,23 @@ assert(Math.abs(fri.hours - 9) < 0.01, "Fri 9h share");
 assert(thu.endLabel === "7:00 pm", "Thu leave 7pm from 10am+9h, got " + thu.endLabel);
 assert(fri.endLabel === "7:00 pm", "Fri leave 7pm, got " + fri.endLabel);
 
+// Fri still in, Odoo hours:0 and no missing_checkout flag — must still project leave
+const daysOpenFri = [
+  { date: "2026-08-03", hours: 9, check_in: "2026-08-03 05:00:00", check_out: "2026-08-03 14:00:00" },
+  { date: "2026-08-04", hours: 9, check_in: "2026-08-04 05:00:00", check_out: "2026-08-04 14:00:00" },
+  { date: "2026-08-05", hours: 9, check_in: "2026-08-05 05:00:00", check_out: "2026-08-05 14:00:00" },
+  { date: "2026-08-06", hours: 9, check_in: "2026-08-06 05:00:00", check_out: "2026-08-06 14:00:00" },
+  { date: "2026-08-07", hours: 0, check_in: "2026-08-07 08:08:00", check_out: null },
+];
+summary = OH.summarizeWeek(daysOpenFri, {}, now);
+const friOpen = summary.perDay.find((d) => d.label === "Fri");
+assert(friOpen.status === "projected", "open Fri projected, got " + friOpen.status);
+assert(friOpen.endKind === "projected", "open Fri end yellow");
+assert(friOpen.startLabel === "1:08 pm", "open Fri start, got " + friOpen.startLabel);
+assert(Math.abs(friOpen.hours - 9) < 0.01, "open Fri needs 9h, got " + friOpen.hours);
+assert(friOpen.endLabel === "10:08 pm", "open Fri leave 10:08pm, got " + friOpen.endLabel);
+assert(Math.abs(summary.vsToday) < 0.01, "open Fri vsToday 0 (4 done at 9h), got " + summary.vsToday);
+
 // Thu entered leave → green; Fri gets the rest
 summary = OH.summarizeWeek(
   days,
