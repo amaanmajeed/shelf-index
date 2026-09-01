@@ -22,6 +22,11 @@ assert(OH.parseUserTime("22:30").hhmm === "22:30", "22:30 stays");
 assert(OH.parseUserTime("10:30pm").hhmm === "22:30", "10:30pm");
 assert(OH.parseUserTime("10:30 am").hhmm === "10:30", "10:30 am");
 
+assert(Math.abs(OH.parseDurationInput("10:20") - 10.333333) < 0.001, "10:20 duration");
+assert(OH.parseDurationInput("9") === 9, "9 hours");
+assert(OH.parseDurationInput("9.5") === 9.5, "9.5 decimal");
+assert(OH.formatHours(10 + 20 / 60) === "10:20", "format 10:20");
+
 // Mon–Wed solid, Thu missing out, Fri check-in only
 const days = [
   { date: "2026-08-03", hours: 9, check_in: "2026-08-03 05:00:00", check_out: "2026-08-03 14:00:00" },
@@ -202,5 +207,22 @@ summary = OH.summarizeWeek(
   wedNow
 );
 assert(Math.abs(summary.expectedByToday - 9) < 0.01, "holiday Mon → expected 9 (Tue only), got " + summary.expectedByToday);
+
+// Cross-month week: Mon in prior month missing from Odoo → manual hours override banks it
+const tueSep = new Date("2026-09-01T12:00:00+05:00");
+const sepKeys = OH.weekDayKeys(tueSep);
+assert(sepKeys[0] === "2026-08-31", "Sep Tue week starts Mon 2026-08-31, got " + sepKeys[0]);
+const daysSep = [
+  { date: "2026-09-01", hours: 9, check_in: "2026-09-01 05:00:00", check_out: "2026-09-01 14:00:00" },
+];
+summary = OH.summarizeWeek(daysSep, {}, tueSep);
+const monSep = summary.perDay.find((d) => d.label === "Mon");
+assert(monSep.status === "missing", "Mon missing without Odoo row, got " + monSep.status);
+assert(Math.abs(summary.banked - 9) < 0.01, "only Tue banked, got " + summary.banked);
+summary = OH.summarizeWeek(daysSep, { "2026-08-31": { hours: 8.5 } }, tueSep);
+const monManual = summary.perDay.find((d) => d.label === "Mon");
+assert(monManual.status === "manual", "Mon manual override, got " + monManual.status);
+assert(Math.abs(monManual.hours - 8.5) < 0.01, "Mon 8.5h, got " + monManual.hours);
+assert(Math.abs(summary.banked - 17.5) < 0.01, "Mon+Tue banked 17.5, got " + summary.banked);
 
 console.log("ok — projections:", summary.needed.toFixed(2) + "h needed, target " + summary.target);

@@ -158,6 +158,20 @@
     return sign + Math.floor(totalMin / 60) + ":" + pad(totalMin % 60);
   }
 
+  /** Duration input → decimal hours. "10:20", "9", "9.5". */
+  function parseDurationInput(input) {
+    const s = String(input).trim();
+    if (!s) return null;
+    const hm = s.match(/^(\d+):(\d{1,2})$/);
+    if (hm) {
+      const min = +hm[2];
+      if (min > 59) return null;
+      return +hm[1] + min / 60;
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
   /**
    * Resolve hours for one day.
    * @param {object} day - Odoo day record
@@ -171,7 +185,12 @@
         status: "holiday",
       };
     }
-    if (!day) return { hours: 0, status: "missing" };
+    if (!day) {
+      if (override && typeof override.hours === "number") {
+        return { hours: override.hours, status: "manual" };
+      }
+      return { hours: 0, status: "missing" };
+    }
     if (day.is_weekend) return { hours: 0, status: "weekend" };
     if (day.is_future) return { hours: 0, status: "future" };
     if (day.on_leave) return { hours: 0, status: "leave" };
@@ -388,6 +407,7 @@
     parseOdooDt,
     formatPktTime,
     parseUserTime,
+    parseDurationInput,
     parseTimeOnDay,
     hoursBetween,
     formatHours,

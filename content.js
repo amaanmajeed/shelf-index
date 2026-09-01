@@ -243,10 +243,11 @@
   }
 
   function hoursEditorHtml(d, overrides) {
-    const prev =
+    const raw =
       overrides && overrides[d.key] && typeof overrides[d.key].hours === "number"
         ? overrides[d.key].hours
-        : "";
+        : null;
+    const prev = raw != null ? SI.formatHours(raw) : "";
     const holidayBtn = canMarkHoliday(d)
       ? iconBtn("si-holiday", d.key, "Holiday", "fa-plane")
       : "";
@@ -254,9 +255,9 @@
       '<span class="si-hours-edit" data-key="' +
       d.key +
       '">' +
-      '<input class="si-hours" type="text" inputmode="decimal" value="' +
+      '<input class="si-hours" type="text" inputmode="text" value="' +
       prev +
-      '" placeholder="hrs" aria-label="Hours">' +
+      '" placeholder="h:mm" aria-label="Hours worked">' +
       iconBtn("si-save-hours", d.key, "Save", "fa-check") +
       holidayBtn +
       iconBtn("si-cancel", d.key, "Cancel", "fa-times") +
@@ -386,7 +387,7 @@
         });
       return;
     }
-    const edit = e.target.closest(".si-edit");
+    const edit = e.target.closest(".si-edit, .si-add-hours");
     if (edit) {
       const key = edit.getAttribute("data-key");
       editingKey = key;
@@ -457,6 +458,14 @@
     return !!(d.status === "leave_time" || d.checkIn);
   }
 
+  function isPastMissing(d) {
+    return (
+      d.status === "missing" &&
+      lastSummary &&
+      d.key < lastSummary.todayKey
+    );
+  }
+
   function wantsHoursEditor(d) {
     if (isFriday(d) || d.status === "holiday" || d.status === "projected")
       return false;
@@ -464,13 +473,14 @@
     return (
       d.status === "manual" ||
       d.status === "needs_hours" ||
-      (d.is_absent && !d.checkIn)
+      (d.is_absent && !d.checkIn) ||
+      isPastMissing(d)
     );
   }
 
   /** No Odoo check-in: enter start so leave can be projected (Thu/Fri, or any day you weren't there). */
   function wantsStartEditor(d) {
-    if (d.status === "holiday" || d.checkIn) return false;
+    if (d.status === "holiday" || d.checkIn || isPastMissing(d)) return false;
     if (editingKey !== d.key || skippedKeys[d.key]) return false;
     return (
       d.status === "projected" ||
@@ -539,6 +549,7 @@
             d.status === "needs_leave" ||
             d.status === "needs_hours" ||
             d.status === "projected" ||
+            isPastMissing(d) ||
             (d.missing_checkout && d.checkIn) ||
             (d.is_absent && !d.checkIn));
         const canEdit =
@@ -547,13 +558,21 @@
           !hoursEd && canMarkHoliday(d)
             ? iconBtn("si-holiday", d.key, "Holiday", "fa-plane")
             : "";
-        const note = canEdit
-          ? iconBtn("si-edit", d.key, "Edit", "fa-pencil") + holidayBtn
-          : holidayBtn
-            ? holidayBtn
-            : d.status === "projected"
-              ? "projected"
-              : "";
+        const addHoursBtn =
+          !leaveEd && !hoursEd && !startEd && isPastMissing(d)
+            ? iconBtn("si-add-hours", d.key, "Add hours", "fa-plus")
+            : "";
+        const note = addHoursBtn
+          ? addHoursBtn + holidayBtn
+          : canEdit
+            ? iconBtn("si-edit", d.key, "Edit", "fa-pencil") + holidayBtn
+            : holidayBtn
+              ? holidayBtn
+              : d.status === "projected"
+                ? "projected"
+                : d.status === "missing"
+                  ? "missing"
+                  : "";
         return (
           "<tr><td>" +
           d.label +
@@ -697,9 +716,9 @@
       '.si-hours-edit[data-key="' + key + '"]'
     );
     if (!root) return;
-    const h = parseFloat(root.querySelector(".si-hours").value);
-    if (isNaN(h) || h < 0 || h > 24) {
-      window.alert("Enter hours between 0 and 24.");
+    const h = SI.parseDurationInput(root.querySelector(".si-hours").value);
+    if (h == null || h < 0 || h > 24) {
+      window.alert("Enter hours as h:mm (e.g. 10:20) or a number up to 24.");
       return;
     }
     await setOverride(key, { hours: h });
