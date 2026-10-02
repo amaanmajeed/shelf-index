@@ -225,4 +225,61 @@ assert(monManual.status === "manual", "Mon manual override, got " + monManual.st
 assert(Math.abs(monManual.hours - 8.5) < 0.01, "Mon 8.5h, got " + monManual.hours);
 assert(Math.abs(summary.banked - 17.5) < 0.01, "Mon+Tue banked 17.5, got " + summary.banked);
 
+// Saved complete Mon survives the month roll; live Tue is not overwritten
+const prior = [
+  { date: "2026-08-31", hours: 9, check_in: "2026-08-31 05:00:00", check_out: "2026-08-31 14:00:00" },
+  { date: "2026-09-01", hours: 1, check_in: "2026-09-01 05:00:00", check_out: "2026-09-01 06:00:00" },
+  { date: "2026-08-24", hours: 9, check_in: "2026-08-24 05:00:00", check_out: "2026-08-24 14:00:00" },
+];
+const snap = OH.weekCompleteSnapshot(prior, tueSep);
+assert(snap["2026-08-31"] && snap["2026-08-31"].check_out, "snapshot keeps complete Mon");
+assert(snap["2026-09-01"].hours === 1, "snapshot keeps complete Tue");
+assert(!snap["2026-08-24"], "snapshot drops prior week");
+const openDay = { date: "2026-08-31", hours: 0, check_in: "2026-08-31 05:00:00", check_out: null };
+assert(!OH.weekCompleteSnapshot([openDay], tueSep)["2026-08-31"], "open day is not stored");
+const filled = OH.mergeWeekComplete(daysSep, snap, tueSep);
+summary = OH.summarizeWeek(filled, {}, tueSep);
+const monKept = summary.perDay.find((d) => d.label === "Mon");
+const tueKept = summary.perDay.find((d) => d.label === "Tue");
+assert(monKept.status === "ok", "stored Mon is banked, got " + monKept.status);
+assert(Math.abs(monKept.hours - 9) < 0.01, "stored Mon 9h, got " + monKept.hours);
+assert(Math.abs(tueKept.hours - 9) < 0.01, "live Tue wins over snapshot, got " + tueKept.hours);
+assert(Math.abs(summary.banked - 18) < 0.01, "Mon+Tue banked 18, got " + summary.banked);
+
+// Oct week started in September: month feed has Thu–Fri only; attendances fill Mon–Wed
+const friOct = new Date("2026-10-02T12:00:00+05:00");
+assert(
+  OH.priorMonthWeekKeys([], new Date("2026-08-07T12:00:00+05:00")).length === 0,
+  "same-month week needs no attendance lookup"
+);
+const octDays = [
+  { date: "2026-10-01", hours: 9, check_in: "2026-10-01 04:00:00", check_out: "2026-10-01 13:00:00" },
+  { date: "2026-10-02", hours: 0, check_in: "2026-10-02 06:50:00", check_out: null, missing_checkout: true },
+];
+const missingOct = OH.priorMonthWeekKeys(octDays, friOct);
+assert(
+  missingOct.join() === "2026-09-28,2026-09-29,2026-09-30",
+  "prior-month keys, got " + missingOct.join()
+);
+const range = OH.attendanceRangeUtc(missingOct);
+assert(range[0] === "2026-09-27 19:00:00", "range start, got " + range[0]);
+assert(range[1] === "2026-09-30 19:00:00", "range end, got " + range[1]);
+const attDays = OH.daysFromAttendances([
+  { check_in: "2026-09-28 09:31:00", check_out: "2026-09-28 18:01:00", worked_hours: 8.5 },
+  { check_in: "2026-09-28 18:10:00", check_out: "2026-09-28 19:10:00", worked_hours: 1 },
+  { check_in: "2026-09-29 10:09:00", check_out: "2026-09-29 18:06:00", worked_hours: 7.95 },
+  { check_in: "2026-09-30 09:53:00", check_out: "2026-09-30 18:39:00", worked_hours: 8 + 46 / 60 },
+  { check_in: "2026-10-02 06:50:00", check_out: false, worked_hours: 0 },
+]);
+const monAtt = attDays.find((d) => d.date === "2026-09-28");
+assert(Math.abs(monAtt.hours - 9.5) < 0.01, "two punches sum, got " + monAtt.hours);
+assert(monAtt.check_in === "2026-09-28 09:31:00", "earliest check-in");
+assert(monAtt.check_out === "2026-09-28 19:10:00", "latest check-out");
+const wedAtt = attDays.find((d) => d.date === "2026-09-30");
+assert(Math.abs(wedAtt.hours - (8 + 46 / 60)) < 0.01, "Sep 30 worked hours");
+summary = OH.summarizeWeek(octDays.concat(attDays.filter((d) => d.date < "2026-10-01")), {}, friOct);
+assert(summary.perDay.find((d) => d.label === "Mon").status === "ok", "Mon from attendances");
+const friRow = summary.perDay.find((d) => d.label === "Fri");
+assert(friRow.checkIn && friRow.status === "projected", "Fri still open, got " + friRow.status);
+
 console.log("ok — projections:", summary.needed.toFixed(2) + "h needed, target " + summary.target);

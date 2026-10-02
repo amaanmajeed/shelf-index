@@ -5,6 +5,7 @@
   const STORAGE_OVERRIDES = "shelfIndexOverrides";
   const STORAGE_LAST = "shelfIndexLastResult";
   const STORAGE_CACHE = "shelfIndexDayCache";
+  const STORAGE_WEEK = "shelfIndexWeekComplete";
   const STORAGE_DAILY = "shelfIndexDailyHours";
 
   let editingKey = null; // force inline editor on this day (Edit button)
@@ -57,9 +58,7 @@
     });
   }
 
-  async function fetchDailyHours() {
-    const url =
-      "/web/dataset/call_kw/hr.employee/get_daily_hours_worked_current_month";
+  async function odooCall(url, params) {
     const res = await fetch(url, {
       method: "POST",
       credentials: "include",
@@ -67,12 +66,7 @@
       body: JSON.stringify({
         jsonrpc: "2.0",
         method: "call",
-        params: {
-          model: "hr.employee",
-          method: "get_daily_hours_worked_current_month",
-          args: [],
-          kwargs: {},
-        },
+        params: params,
         id: Date.now(),
       }),
     });
@@ -85,12 +79,76 @@
           "RPC error"
       );
     }
-    return body.result || [];
+    return body.result;
+  }
+
+  function fetchDailyHours() {
+    return odooCall(
+      "/web/dataset/call_kw/hr.employee/get_daily_hours_worked_current_month",
+      {
+        model: "hr.employee",
+        method: "get_daily_hours_worked_current_month",
+        args: [],
+        kwargs: {},
+      }
+    ).then((rows) => rows || []);
+  }
+
+  /** My Attendances rows for this user's missing prior-month weekdays. */
+  async function fetchPriorAttendances(keys) {
+    const info = await odooCall("/web/session/get_session_info", {});
+    const userId = info && info.uid;
+    if (!userId) return [];
+    const range = SI.attendanceRangeUtc(keys);
+    if (!range) return [];
+    const rows = await odooCall(
+      "/web/dataset/call_kw/hr.attendance/search_read",
+      {
+        model: "hr.attendance",
+        method: "search_read",
+        args: [],
+        kwargs: {
+          domain: [
+            ["employee_id.user_id", "=", userId],
+            ["check_in", ">=", range[0]],
+            ["check_in", "<", range[1]],
+          ],
+          fields: ["check_in", "check_out", "worked_hours"],
+          limit: 40,
+          order: "check_in asc",
+        },
+      }
+    );
+    const want = {};
+    keys.forEach((k) => {
+      want[k] = true;
+    });
+    return SI.daysFromAttendances(rows).filter((d) => want[d.date]);
+  }
+
+  /** Keep this week's finished days so a new month doesn't drop Mon–Thu. */
+  async function rememberWeek(days) {
+    if (!extAlive()) return days;
+    try {
+      const prev = (await storageGet([STORAGE_WEEK]))[STORAGE_WEEK] || {};
+      const merged = SI.mergeWeekComplete(days, prev);
+      await storageSet({ [STORAGE_WEEK]: SI.weekCompleteSnapshot(merged) });
+      return merged;
+    } catch (_e) {
+      return days;
+    }
   }
 
   async function getDays() {
     try {
-      const days = await fetchDailyHours();
+      let days = await fetchDailyHours();
+      const missing = SI.priorMonthWeekKeys(days);
+      if (missing.length) {
+        try {
+          const extra = await fetchPriorAttendances(missing);
+          if (extra.length) days = days.concat(extra);
+        } catch (_e) {}
+      }
       // cache is best-effort — don't fail the run if extension was reloaded
       if (extAlive()) {
         try {
@@ -99,13 +157,14 @@
           });
         } catch (_e) {}
       }
-      return days;
+      return rememberWeek(days);
     } catch (e) {
       if (/invalidated/i.test(String(e && e.message))) throw e;
       try {
         if (extAlive()) {
           const cached = (await storageGet([STORAGE_CACHE]))[STORAGE_CACHE];
-          if (cached && cached.days && cached.days.length) return cached.days;
+          if (cached && cached.days && cached.days.length)
+            return rememberWeek(cached.days);
         }
       } catch (_e) {}
       throw e;

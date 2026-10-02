@@ -296,6 +296,110 @@
   }
 
   /**
+   * Current-week days that already have both check-in and checkout.
+   * ponytail: only this week is kept; next week's save drops the rest.
+   * @returns {object} { "YYYY-MM-DD": { date, hours, check_in, check_out } }
+   */
+  function weekCompleteSnapshot(days, now) {
+    const keep = {};
+    weekDayKeys(now).forEach((k) => {
+      keep[k] = true;
+    });
+    const out = {};
+    (days || []).forEach((d) => {
+      const k = dateKey(parseDayDate(d.date) || d.date);
+      if (!keep[k] || !d.check_in || !d.check_out) return;
+      out[k] = {
+        date: k,
+        hours: d.hours,
+        check_in: d.check_in,
+        check_out: d.check_out,
+      };
+    });
+    return out;
+  }
+
+  /**
+   * Weekdays in the previous month that the current-month feed cannot return.
+   * Empty when the whole week sits in this month.
+   */
+  function priorMonthWeekKeys(days, now) {
+    now = now || new Date();
+    const month = dateKey(now).slice(0, 7);
+    const have = {};
+    (days || []).forEach((d) => {
+      const k = dateKey(parseDayDate(d.date) || d.date);
+      if (k) have[k] = true;
+    });
+    return weekDayKeys(now).filter((k) => k.slice(0, 7) !== month && !have[k]);
+  }
+
+  /** PKT midnight of `key` as the naive UTC stamp Odoo stores. */
+  function pktMidnightUtc(key) {
+    const d = new Date(key + "T00:00:00+05:00");
+    if (isNaN(d)) return null;
+    return d.toISOString().slice(0, 19).replace("T", " ");
+  }
+
+  /** [start, end) UTC stamps covering `keys` (PKT dates, week order). */
+  function attendanceRangeUtc(keys) {
+    if (!keys || !keys.length) return null;
+    return [
+      pktMidnightUtc(keys[0]),
+      pktMidnightUtc(addDaysKey(keys[keys.length - 1], 1)),
+    ];
+  }
+
+  /**
+   * hr.attendance rows → one day record per PKT date.
+   * ponytail: several punches on one day sum worked_hours; first in, last out.
+   */
+  function daysFromAttendances(rows) {
+    const by = {};
+    (rows || []).forEach((r) => {
+      if (!r || !r.check_in) return;
+      const k = dateKey(parseOdooDt(r.check_in));
+      if (!k) return;
+      const hours = +r.worked_hours || 0;
+      const cur = by[k];
+      if (!cur) {
+        by[k] = {
+          date: k,
+          hours: hours,
+          check_in: r.check_in,
+          check_out: r.check_out || null,
+        };
+        return;
+      }
+      cur.hours += hours;
+      if (String(r.check_in) < String(cur.check_in)) cur.check_in = r.check_in;
+      if (
+        r.check_out &&
+        (!cur.check_out || String(r.check_out) > String(cur.check_out))
+      ) {
+        cur.check_out = r.check_out;
+      }
+    });
+    return Object.keys(by).map((k) => by[k]);
+  }
+
+  /** Fill current-week days missing from `days` using a saved snapshot. Live rows win. */
+  function mergeWeekComplete(days, stored, now) {
+    const have = {};
+    (days || []).forEach((d) => {
+      const k = dateKey(parseDayDate(d.date) || d.date);
+      if (k) have[k] = true;
+    });
+    const extra = [];
+    weekDayKeys(now).forEach((k) => {
+      const s = stored && stored[k];
+      if (have[k] || !s || !s.check_in || !s.check_out) return;
+      extra.push(s.date ? s : Object.assign({ date: k }, s));
+    });
+    return extra.length ? (days || []).concat(extra) : days || [];
+  }
+
+  /**
    * @param {object[]} days - month day records from Odoo
    * @param {object} overrides - { "YYYY-MM-DD": { leave } | { hours } }
    * @param {Date} [now]
@@ -412,6 +516,11 @@
     hoursBetween,
     formatHours,
     dayHours,
+    weekCompleteSnapshot,
+    priorMonthWeekKeys,
+    attendanceRangeUtc,
+    daysFromAttendances,
+    mergeWeekComplete,
     summarizeWeek,
     parseDayDate,
   };
