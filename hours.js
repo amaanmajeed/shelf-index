@@ -158,6 +158,25 @@
     return sign + Math.floor(totalMin / 60) + ":" + pad(totalMin % 60);
   }
 
+  /** True when `remote` is a newer dotted version than `local` (numeric, not string order). */
+  function isNewerVersion(remote, local) {
+    const parse = (v) =>
+      String(v || "")
+        .split(".")
+        .map((n) => {
+          const x = parseInt(n, 10);
+          return isNaN(x) ? 0 : x;
+        });
+    const a = parse(remote);
+    const b = parse(local);
+    const n = Math.max(a.length, b.length);
+    for (let i = 0; i < n; i++) {
+      const d = (a[i] || 0) - (b[i] || 0);
+      if (d) return d > 0;
+    }
+    return false;
+  }
+
   /** Past a planned checkout: "(+5 mins)", "(+1 min)", "(+1h 5 mins)". Empty under 1 min. */
   function formatOvertime(mins) {
     mins = Math.floor(+mins);
@@ -539,6 +558,7 @@
     parseTimeOnDay,
     hoursBetween,
     formatHours,
+    isNewerVersion,
     dayHours,
     weekCompleteSnapshot,
     priorMonthWeekKeys,

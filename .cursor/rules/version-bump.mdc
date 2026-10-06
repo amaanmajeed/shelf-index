@@ -1,0 +1,21 @@
+---
+description: Bump the extension version on every user-visible change so the popup can show an update
+alwaysApply: true
+---
+
+# Version bump
+
+The popup compares `manifest.json` `version` with `main` on GitHub. If the number does not go up, end users never see that something shipped.
+
+When a change is user-visible (a feature, or a fix they would notice), bump the patch number in `manifest.json` in that same change, before the work is done.
+
+- `1.0.1` → `1.0.2`. One step. Do not skip or reuse a number already on `main`.
+- Do not bump for tests, comments, refactors, or anything the user does not see.
+
+```json
+// ❌ shipped a feature, left the version alone
+"version": "1.0.1"
+
+// ✅ same change bumps it
+"version": "1.0.2"
+```

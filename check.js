@@ -308,4 +308,9 @@ assert(summary.perDay.find((d) => d.label === "Mon").status === "ok", "Mon from 
 const friRow = summary.perDay.find((d) => d.label === "Fri");
 assert(friRow.checkIn && friRow.status === "projected", "Fri still open, got " + friRow.status);
 
+assert(OH.isNewerVersion("1.0.1", "1.0.0"), "1.0.1 is newer");
+assert(!OH.isNewerVersion("1.0.0", "1.0.0"), "same version is not newer");
+assert(!OH.isNewerVersion("1.0.0", "1.0.1"), "older remote is not newer");
+assert(OH.isNewerVersion("1.0.10", "1.0.9"), "1.0.10 beats 1.0.9 numerically");
+
 console.log("ok — projections:", summary.needed.toFixed(2) + "h needed, target " + summary.target);
