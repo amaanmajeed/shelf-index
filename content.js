@@ -453,7 +453,7 @@
         if (!remote || !remote.version || !panel.isConnected) return;
         if (!SI.isNewerVersion(remote.version, local)) return;
         el.hidden = false;
-        el.textContent = "update";
+        el.textContent = "New Update Available";
         el.title =
           "Update " +
           remote.version +
