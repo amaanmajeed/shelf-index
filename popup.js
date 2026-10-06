@@ -40,32 +40,6 @@ function paintTheme(dark) {
   document.body.classList.toggle("si-light", !dark);
 }
 
-const VERSION_URL =
-  "https://raw.githubusercontent.com/amaanmajeed/shelf-index/main/manifest.json";
-
-function checkUpdate() {
-  const el = document.getElementById("update");
-  const local = chrome.runtime.getManifest().version;
-  fetch(VERSION_URL + "?t=" + Date.now(), { cache: "no-store" })
-    .then((res) => (res.ok ? res.json() : null))
-    .then((remote) => {
-      if (!remote || !remote.version) return;
-      el.hidden = false;
-      if (ShelfIndex.isNewerVersion(remote.version, local)) {
-        el.classList.add("warn");
-        el.textContent =
-          "Update " +
-          remote.version +
-          " available. Pull the repo, then reload this extension.";
-      } else {
-        el.textContent = "Up to date (" + local + ")";
-      }
-    })
-    .catch(() => {});
-}
-
-checkUpdate();
-
 chrome.storage.local.get(["shelfIndexLastResult", THEME_KEY], (r) => {
   showLast(r.shelfIndexLastResult);
   paintTheme(r[THEME_KEY] !== false);

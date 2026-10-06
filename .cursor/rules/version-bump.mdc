@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Version bump
 
-The popup compares `manifest.json` `version` with `main` on GitHub. If the number does not go up, end users never see that something shipped.
+The on-page panel compares `manifest.json` `version` with `main` on GitHub. If the number does not go up, end users never see that something shipped.
 
 When a change is user-visible (a feature, or a fix they would notice), bump the patch number in `manifest.json` in that same change, before the work is done.
 

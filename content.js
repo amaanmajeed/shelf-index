@@ -7,6 +7,8 @@
   const STORAGE_CACHE = "shelfIndexDayCache";
   const STORAGE_WEEK = "shelfIndexWeekComplete";
   const STORAGE_DAILY = "shelfIndexDailyHours";
+  const VERSION_URL =
+    "https://raw.githubusercontent.com/amaanmajeed/shelf-index/main/manifest.json";
 
   let editingKey = null; // force inline editor on this day (Edit button)
   let skippedKeys = {}; // cancelled editors — show label until Edit
@@ -393,6 +395,7 @@
     el.id = PANEL_ID;
     el.innerHTML =
       '<div class="si-head"><strong>Shelf Index</strong>' +
+      '<span class="si-update" hidden></span>' +
       '<span class="si-mode" title="Daily hours target">' +
       '<button type="button" class="si-daily si-daily-on" data-daily="9">9h</button>' +
       '<button type="button" class="si-daily" data-daily="6">6h</button>' +
@@ -401,6 +404,7 @@
       '<button type="button" class="si-icon si-close" title="Close" aria-label="Close"><i class="fa fa-times"></i></button></div>' +
       '<div class="si-body">Loading…</div>';
     document.documentElement.appendChild(el);
+    checkUpdate(el);
     el.querySelector(".si-close").addEventListener("click", () => {
       stopOvertimeTick();
       el.remove();
@@ -437,6 +441,25 @@
       }
     });
     return el;
+  }
+
+  function checkUpdate(panel) {
+    const el = panel.querySelector(".si-update");
+    if (!el || !extAlive()) return;
+    const local = chrome.runtime.getManifest().version;
+    fetch(VERSION_URL + "?t=" + Date.now(), { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((remote) => {
+        if (!remote || !remote.version || !panel.isConnected) return;
+        if (!SI.isNewerVersion(remote.version, local)) return;
+        el.hidden = false;
+        el.textContent = "update";
+        el.title =
+          "Update " +
+          remote.version +
+          " available. Pull the repo, then reload this extension.";
+      })
+      .catch(() => {});
   }
 
   function onPanelClick(e) {

@@ -23,12 +23,18 @@
 }
 
 #shelf-index-panel .si-head strong {
-  flex: 1;
   font-size: 14px;
+}
+
+#shelf-index-panel .si-update {
+  color: #c0392b;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 #shelf-index-panel .si-mode {
   display: inline-flex;
+  margin-left: auto;
   border: 1px solid #c5cad6;
   border-radius: 4px;
   overflow: hidden;
@@ -790,6 +796,10 @@ html:not(.si-light) {
 
   #shelf-index-panel .si-behind {
     color: #e07a72;
+  }
+
+  #shelf-index-panel .si-update {
+    color: #ff6b6b;
   }
 
   #shelf-index-panel .si-projected {
