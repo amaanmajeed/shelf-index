@@ -158,6 +158,17 @@
     return sign + Math.floor(totalMin / 60) + ":" + pad(totalMin % 60);
   }
 
+  /** Past a planned checkout: "(+5 mins)", "(+1 min)", "(+1h 5 mins)". Empty under 1 min. */
+  function formatOvertime(mins) {
+    mins = Math.floor(+mins);
+    if (!(mins >= 1)) return "";
+    const bit = (n) => n + " " + (n === 1 ? "min" : "mins");
+    if (mins < 60) return "(+" + bit(mins) + ")";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return "(+" + h + "h" + (m ? " " + bit(m) : "") + ")";
+  }
+
   /** Duration input → decimal hours. "10:20", "9", "9.5". */
   function parseDurationInput(input) {
     const s = String(input).trim();
@@ -473,6 +484,19 @@
     const todayKey = dateKey(now);
     const todayWd = weekdayMon1(now);
     applyProjections(perDay, needed, todayWd);
+
+    // still clocked in after today's planned checkout → green (+N mins)
+    const todayRow = perDay.find((d) => d.key === todayKey);
+    if (
+      todayRow &&
+      todayRow.status === "projected" &&
+      todayRow.end &&
+      todayRow.end <= now
+    ) {
+      todayRow.endKind = "overtime";
+      const label = formatOvertime((now - todayRow.end) / 60000);
+      if (label) todayRow.overtime = label;
+    }
 
     // pace vs completed days only (both check-in + check-out / entered leave / manual)
     const doneCount = perDay.filter(

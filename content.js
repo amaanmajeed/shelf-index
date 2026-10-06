@@ -401,7 +401,11 @@
       '<button type="button" class="si-icon si-close" title="Close" aria-label="Close"><i class="fa fa-times"></i></button></div>' +
       '<div class="si-body">Loading…</div>';
     document.documentElement.appendChild(el);
-    el.querySelector(".si-close").addEventListener("click", () => el.remove());
+    el.querySelector(".si-close").addEventListener("click", () => {
+      stopOvertimeTick();
+      el.remove();
+    });
+    startOvertimeTick();
     el.querySelector(".si-refresh").addEventListener("click", () => {
       run().catch((err) => {
         if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
@@ -501,14 +505,56 @@
     }
   }
 
-  function timeCell(label, kind) {
-    const cls =
-      kind === "entered"
-        ? "si-entered"
+  function timeClass(kind) {
+    return kind === "entered"
+      ? "si-entered"
+      : kind === "overtime"
+        ? "si-overtime"
         : kind === "projected"
           ? "si-projected"
           : "";
-    return '<td class="' + cls + '">' + (label || "—") + "</td>";
+  }
+
+  function endText(d) {
+    return (d.overtime ? d.endLabel + " " + d.overtime : d.endLabel) || "—";
+  }
+
+  function timeCell(label, kind) {
+    return '<td class="' + timeClass(kind) + '">' + (label || "—") + "</td>";
+  }
+
+  let overtimeTimer = null;
+
+  function stopOvertimeTick() {
+    if (!overtimeTimer) return;
+    clearInterval(overtimeTimer);
+    overtimeTimer = null;
+  }
+
+  // ponytail: 1s rescan of cached days so the minute flips without an Odoo refetch
+  function tickOvertime() {
+    const panel = document.getElementById(PANEL_ID);
+    if (!panel) {
+      stopOvertimeTick();
+      return;
+    }
+    if (!lastDays) return;
+    const summary = summarize(lastDays, lastOverrides, lastDaily);
+    lastSummary = summary;
+    const i = summary.perDay.findIndex((d) => d.key === summary.todayKey);
+    const today = i >= 0 ? summary.perDay[i] : null;
+    const cell = today && panel.querySelectorAll(".si-table tbody tr")[i];
+    const end = cell && cell.children[2];
+    if (!end || end.querySelector("input, select")) return;
+    const text = endText(today);
+    const cls = timeClass(today.endKind);
+    if (end.textContent !== text) end.textContent = text;
+    if (end.className !== cls) end.className = cls;
+  }
+
+  function startOvertimeTick() {
+    if (overtimeTimer) return;
+    overtimeTimer = setInterval(tickOvertime, 1000);
   }
 
   function wantsLeaveEditor(d) {
@@ -596,7 +642,7 @@
           ? '<td class="si-edit-cell">' +
             timeEditorHtml(d, overrides, "leave") +
             "</td>"
-          : timeCell(d.endLabel, d.endKind);
+          : timeCell(endText(d), d.endKind);
         const hoursCell = hoursEd
           ? '<td class="si-edit-cell">' + hoursEditorHtml(d, overrides) + "</td>"
           : "<td>" + SI.formatHours(d.hours) + "</td>";
