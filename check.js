@@ -167,30 +167,21 @@ assert(Math.abs(wed.hours - 9) < 0.01, "Wed 9h share, got " + wed.hours);
 assert(wed.endLabel === "7:00 pm", "Wed leave 7pm, got " + wed.endLabel);
 assert(wed.endKind === "projected", "Wed end yellow");
 
-// Wed 7:13pm, planned leave 7:00pm → checkout arrived, end green with overtime
+// Wed 7:13pm, planned leave 7:00pm → End is now, not the old plan plus a delta
 const wedLate = new Date("2026-08-05T19:13:00+05:00");
 summary = OH.summarizeWeek(daysWed, {}, wedLate);
 const wedOt = summary.perDay.find((d) => d.label === "Wed");
 assert(wedOt.endKind === "overtime", "Wed overtime, got " + wedOt.endKind);
-assert(wedOt.endLabel === "7:00 pm", "end clock stays, got " + wedOt.endLabel);
-assert(wedOt.overtime === "(+13 mins)", "Wed +13 mins, got " + wedOt.overtime);
+assert(wedOt.endLabel === "7:13 pm", "end is now, got " + wedOt.endLabel);
+assert(!wedOt.overtime, "no second time, got " + wedOt.overtime);
 assert(
-  summary.perDay.find((d) => d.label === "Thu").endKind === "projected",
-  "later days stay projected"
-);
-summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T19:00:30+05:00"));
-const wed0 = summary.perDay.find((d) => d.label === "Wed");
-assert(wed0.endKind === "overtime", "checkout minute is green");
-assert(!wed0.overtime, "under a minute has no label, got " + wed0.overtime);
-summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T19:01:00+05:00"));
-assert(
-  summary.perDay.find((d) => d.label === "Wed").overtime === "(+1 min)",
-  "singular min"
+  summary.perDay.find((d) => d.label === "Thu").endLabel === "7:00 pm",
+  "later days keep the plan"
 );
 summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T20:05:00+05:00"));
 assert(
-  summary.perDay.find((d) => d.label === "Wed").overtime === "(+1h 5 mins)",
-  "over an hour"
+  summary.perDay.find((d) => d.label === "Wed").endLabel === "8:05 pm",
+  "end follows the clock"
 );
 
 // Fri start override → entered start, leave computed from remaining

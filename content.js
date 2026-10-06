@@ -538,28 +538,6 @@
           : "";
   }
 
-  function endText(d) {
-    return (d.overtime ? d.endLabel + " " + d.overtime : d.endLabel) || "—";
-  }
-
-  /** Same (+N) as the End cell, on the summary line. */
-  function paintNowOt(panel, label) {
-    const p = panel.querySelector(".si-body > p");
-    if (!p) return;
-    let el = p.querySelector(".si-now-ot");
-    if (!label) {
-      if (el) el.remove();
-      return;
-    }
-    if (!el) {
-      el = document.createElement("span");
-      el.className = "si-overtime si-now-ot";
-      p.appendChild(el);
-    }
-    const text = " · " + label;
-    if (el.textContent !== text) el.textContent = text;
-  }
-
   function timeCell(label, kind) {
     return '<td class="' + timeClass(kind) + '">' + (label || "—") + "</td>";
   }
@@ -584,11 +562,10 @@
     lastSummary = summary;
     const i = summary.perDay.findIndex((d) => d.key === summary.todayKey);
     const today = i >= 0 ? summary.perDay[i] : null;
-    paintNowOt(panel, today && today.overtime);
     const cell = today && panel.querySelectorAll(".si-table tbody tr")[i];
     const end = cell && cell.children[2];
     if (!end || end.querySelector("input, select")) return;
-    const text = endText(today);
+    const text = today.endLabel || "—";
     const cls = timeClass(today.endKind);
     if (end.textContent !== text) end.textContent = text;
     if (end.className !== cls) end.className = cls;
@@ -684,7 +661,7 @@
           ? '<td class="si-edit-cell">' +
             timeEditorHtml(d, overrides, "leave") +
             "</td>"
-          : timeCell(endText(d), d.endKind);
+          : timeCell(d.endLabel, d.endKind);
         const hoursCell = hoursEd
           ? '<td class="si-edit-cell">' + hoursEditorHtml(d, overrides) + "</td>"
           : "<td>" + SI.formatHours(d.hours) + "</td>";
@@ -757,8 +734,6 @@
       '<table class="si-table"><thead><tr><th>Day</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr></thead><tbody>' +
       rows +
       "</tbody></table>";
-    const today = summary.perDay.find((d) => d.key === summary.todayKey);
-    paintNowOt(el, today && today.overtime);
     focusHourInput(el);
   }
 
