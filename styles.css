@@ -114,6 +114,28 @@
   display: block;
 }
 
+#shelf-index-nav .si-nav-facts {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+#shelf-index-nav .si-nav-facts[hidden] {
+  display: none !important;
+}
+
+#shelf-index-nav .si-nav-facts.si-ahead {
+  color: #9ef0c0 !important;
+}
+
+#shelf-index-nav .si-nav-facts.si-behind {
+  color: #ffb0a8 !important;
+}
+
+#shelf-index-nav .si-nav-facts.si-even {
+  opacity: 0.8;
+}
+
 #shelf-index-panel .si-ahead {
   color: #1f8a4c;
   font-weight: 600;

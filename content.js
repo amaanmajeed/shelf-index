@@ -352,16 +352,19 @@
     wrap.id = NAV_ID;
     wrap.className = "o_nav_entry d-flex align-items-center";
     wrap.innerHTML =
+      '<a href="#" class="si-nav-btn si-nav-facts d-flex align-items-center" hidden title="vs completed days (check-in + check-out)" role="button" aria-label="Pace"></a>' +
       '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><img class="si-nav-logo" src="' +
       chrome.runtime.getURL("icons/shelf-index.svg") +
       '" alt="" width="20" height="20" /></a>' +
       '<a href="#" class="si-nav-btn si-theme-btn d-flex align-items-center" title="Toggle light mode" role="button" aria-label="Toggle theme">' +
       THEME_ICONS +
       "</a>";
-    wrap.querySelector(".si-nav-btn:not(.si-theme-btn)").addEventListener("click", (e) => {
-      e.preventDefault();
-      run().catch((err) => {
-        if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+    wrap.querySelectorAll(".si-nav-btn:not(.si-theme-btn)").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        run().catch((err) => {
+          if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+        });
       });
     });
     wrap.querySelector(".si-theme-btn").addEventListener("click", (e) => {
@@ -370,7 +373,32 @@
     });
     if (bell) systray.insertBefore(wrap, bell);
     else systray.appendChild(wrap);
+    paintNavFacts();
     return true;
+  }
+
+  // ponytail: navbar shows pace only; banked and remaining stay in the panel
+  let navFacts = null;
+
+  function paintNavFacts(summary) {
+    if (summary !== undefined) navFacts = summary;
+    const el = document.querySelector("#" + NAV_ID + " .si-nav-facts");
+    if (!el) return;
+    const s = navFacts;
+    const vs = s && s.vsToday;
+    el.classList.remove("si-ahead", "si-behind", "si-even");
+    if (!s || vs == null || isNaN(vs)) {
+      el.hidden = true;
+      el.textContent = "";
+      return;
+    }
+    const vsCls =
+      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even";
+    const label = formatVsToday(vs);
+    el.hidden = false;
+    el.textContent = label;
+    el.classList.add(vsCls);
+    el.setAttribute("aria-label", label);
   }
 
   function toggleTheme() {
@@ -734,6 +762,7 @@
       '<table class="si-table"><thead><tr><th>Day</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr></thead><tbody>' +
       rows +
       "</tbody></table>";
+    paintNavFacts(summary);
     focusHourInput(el);
   }
 
@@ -908,6 +937,7 @@
       skippedKeys = {};
       const el = document.getElementById(PANEL_ID);
       if (el) el.remove();
+      paintNavFacts(null);
       sendResponse({ ok: true });
       return;
     }
@@ -930,4 +960,7 @@
   });
 
   watchNav();
+  storageGet(STORAGE_LAST)
+    .then((r) => paintNavFacts(r[STORAGE_LAST] || null))
+    .catch(() => {});
 })();
