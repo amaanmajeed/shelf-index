@@ -434,7 +434,6 @@
     document.documentElement.appendChild(el);
     checkUpdate(el);
     el.querySelector(".si-close").addEventListener("click", () => {
-      stopOvertimeTick();
       el.remove();
     });
     startOvertimeTick();
@@ -566,11 +565,42 @@
           : "";
   }
 
+  function endText(d) {
+    if (!d || !d.endLabel) return "—";
+    if (!(d.overtimeMin >= 1)) return d.endLabel;
+    return d.endLabel + " (+" + SI.formatHours(d.overtimeMin / 60) + ")";
+  }
+
   function timeCell(label, kind) {
     return '<td class="' + timeClass(kind) + '">' + (label || "—") + "</td>";
   }
 
+  function statsHtml(summary) {
+    const vs = summary.vsToday;
+    const vsCls =
+      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even";
+    const vsHtml =
+      vs == null || isNaN(vs)
+        ? ""
+        : ' · <span class="' +
+          vsCls +
+          '" title="vs completed days (check-in + check-out)">' +
+          formatVsToday(vs) +
+          "</span>";
+    return (
+      "Banked <b>" +
+      SI.formatHours(summary.banked) +
+      "</b> / " +
+      summary.target +
+      "h · Remaining <b>" +
+      SI.formatHours(summary.needed) +
+      "</b>" +
+      vsHtml
+    );
+  }
+
   let overtimeTimer = null;
+  let lastTickStamp = "";
 
   function stopOvertimeTick() {
     if (!overtimeTimer) return;
@@ -578,25 +608,42 @@
     overtimeTimer = null;
   }
 
+  function stampOf(summary) {
+    return summary.banked + "|" + summary.needed + "|" + summary.vsToday;
+  }
+
   // ponytail: 1s rescan of cached days so the minute flips without an Odoo refetch
   function tickOvertime() {
-    const panel = document.getElementById(PANEL_ID);
-    if (!panel) {
+    if (!extAlive()) {
       stopOvertimeTick();
       return;
     }
     if (!lastDays) return;
     const summary = summarize(lastDays, lastOverrides, lastDaily);
     lastSummary = summary;
-    const i = summary.perDay.findIndex((d) => d.key === summary.todayKey);
-    const today = i >= 0 ? summary.perDay[i] : null;
-    const cell = today && panel.querySelectorAll(".si-table tbody tr")[i];
-    const end = cell && cell.children[2];
-    if (!end || end.querySelector("input, select")) return;
-    const text = today.endLabel || "—";
-    const cls = timeClass(today.endKind);
-    if (end.textContent !== text) end.textContent = text;
-    if (end.className !== cls) end.className = cls;
+    const panel = document.getElementById(PANEL_ID);
+    if (panel) {
+      const stats = panel.querySelector(".si-stats");
+      if (stats) {
+        const html = statsHtml(summary);
+        if (stats.innerHTML !== html) stats.innerHTML = html;
+      }
+      const i = summary.perDay.findIndex((d) => d.key === summary.todayKey);
+      const today = i >= 0 ? summary.perDay[i] : null;
+      const cell = today && panel.querySelectorAll(".si-table tbody tr")[i];
+      const end = cell && cell.children[2];
+      if (end && !end.querySelector("input, select")) {
+        const text = endText(today);
+        const cls = timeClass(today.endKind);
+        if (end.textContent !== text) end.textContent = text;
+        if (end.className !== cls) end.className = cls;
+      }
+    }
+    paintNavFacts(summary);
+    const stamp = stampOf(summary);
+    if (stamp === lastTickStamp) return;
+    lastTickStamp = stamp;
+    persist(summary).catch(() => {});
   }
 
   function startOvertimeTick() {
@@ -689,7 +736,7 @@
           ? '<td class="si-edit-cell">' +
             timeEditorHtml(d, overrides, "leave") +
             "</td>"
-          : timeCell(d.endLabel, d.endKind);
+          : timeCell(endText(d), d.endKind);
         const hoursCell = hoursEd
           ? '<td class="si-edit-cell">' + hoursEditorHtml(d, overrides) + "</td>"
           : "<td>" + SI.formatHours(d.hours) + "</td>";
@@ -738,26 +785,9 @@
         );
       })
       .join("");
-    const vs = summary.vsToday;
-    const vsCls =
-      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even";
-    const vsHtml =
-      vs == null || isNaN(vs)
-        ? ""
-        : ' · <span class="' +
-          vsCls +
-          '" title="vs completed days (check-in + check-out)">' +
-          formatVsToday(vs) +
-          "</span>";
     el.querySelector(".si-body").innerHTML =
-      "<p>Banked <b>" +
-      SI.formatHours(summary.banked) +
-      "</b> / " +
-      summary.target +
-      "h · Remaining <b>" +
-      SI.formatHours(summary.needed) +
-      "</b>" +
-      vsHtml +
+      '<p class="si-stats">' +
+      statsHtml(summary) +
       "</p>" +
       '<table class="si-table"><thead><tr><th>Day</th><th>Start</th><th>End</th><th>Hours</th><th></th></tr></thead><tbody>' +
       rows +
@@ -898,6 +928,19 @@
     editingKey = null;
   }
 
+  async function loadSummary() {
+    const days = await getDays();
+    lastDays = days;
+    const overrides = await getOverrides();
+    const daily = await getDailyHours();
+    const summary = summarize(days, overrides, daily);
+    lastSummary = summary;
+    lastTickStamp = stampOf(summary);
+    paintNavFacts(summary);
+    await persist(summary);
+    return summary;
+  }
+
   async function run() {
     const panel = ensurePanel();
     if (!extAlive()) {
@@ -908,13 +951,8 @@
     editingKey = null;
     skippedKeys = {};
     try {
-      const days = await getDays();
-      lastDays = days;
-      const overrides = await getOverrides();
-      const daily = await getDailyHours();
-      const summary = summarize(days, overrides, daily);
+      const summary = await loadSummary();
       await renderPanel(summary);
-      await persist(summary);
       return summary;
     } catch (e) {
       if (/invalidated/i.test(String(e && e.message))) {
@@ -960,7 +998,24 @@
   });
 
   watchNav();
-  storageGet(STORAGE_LAST)
-    .then((r) => paintNavFacts(r[STORAGE_LAST] || null))
+  startOvertimeTick();
+  // Cached days + the clock, then a fresh Odoo pull. Popup only reads what this writes.
+  storageGet([STORAGE_CACHE, STORAGE_OVERRIDES, STORAGE_DAILY, STORAGE_LAST])
+    .then((bag) => {
+      const cached = bag[STORAGE_CACHE];
+      if (cached && cached.days && cached.days.length) {
+        lastOverrides = bag[STORAGE_OVERRIDES] || {};
+        lastDaily = +bag[STORAGE_DAILY] === 6 ? 6 : 9;
+        lastDays = cached.days;
+        const summary = summarize(lastDays, lastOverrides, lastDaily);
+        lastSummary = summary;
+        lastTickStamp = stampOf(summary);
+        paintNavFacts(summary);
+        return persist(summary);
+      }
+      paintNavFacts(bag[STORAGE_LAST] || null);
+    })
+    .catch(() => {})
+    .then(() => loadSummary())
     .catch(() => {});
 })();

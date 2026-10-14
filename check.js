@@ -167,22 +167,43 @@ assert(Math.abs(wed.hours - 9) < 0.01, "Wed 9h share, got " + wed.hours);
 assert(wed.endLabel === "7:00 pm", "Wed leave 7pm, got " + wed.endLabel);
 assert(wed.endKind === "projected", "Wed end yellow");
 
-// Wed 7:13pm, planned leave 7:00pm → End is now, not the old plan plus a delta
+// Wed 7:13pm, planned leave 7:00pm → End stays 7:00 pm, extra is (+0:13)
 const wedLate = new Date("2026-08-05T19:13:00+05:00");
 summary = OH.summarizeWeek(daysWed, {}, wedLate);
 const wedOt = summary.perDay.find((d) => d.label === "Wed");
 assert(wedOt.endKind === "overtime", "Wed overtime, got " + wedOt.endKind);
-assert(wedOt.endLabel === "7:13 pm", "end is now, got " + wedOt.endLabel);
-assert(!wedOt.overtime, "no second time, got " + wedOt.overtime);
+assert(wedOt.endLabel === "7:00 pm", "ideal checkout stays, got " + wedOt.endLabel);
+assert(wedOt.overtimeMin === 13, "13 min past checkout, got " + wedOt.overtimeMin);
+assert(
+  OH.formatHours(wedOt.overtimeMin / 60) === "0:13",
+  "bracket reads 0:13"
+);
+assert(
+  Math.abs(summary.banked - (18 + 13 / 60)) < 0.01,
+  "banked includes +13m, got " + summary.banked
+);
+assert(
+  Math.abs(summary.needed - (27 - 13 / 60)) < 0.01,
+  "remaining drops 13m, got " + summary.needed
+);
+assert(
+  Math.abs(summary.vsToday - 13 / 60) < 0.01,
+  "pace includes +13m, got " + summary.vsToday
+);
 assert(
   summary.perDay.find((d) => d.label === "Thu").endLabel === "7:00 pm",
   "later days keep the plan"
 );
+summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T19:00:30+05:00"));
+const wed0 = summary.perDay.find((d) => d.label === "Wed");
+assert(wed0.endKind === "overtime", "checkout minute is green");
+assert(!wed0.overtimeMin, "under a minute has no extra, got " + wed0.overtimeMin);
+assert(Math.abs(summary.banked - 18) < 0.01, "under a minute banked unchanged");
 summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T20:05:00+05:00"));
-assert(
-  summary.perDay.find((d) => d.label === "Wed").endLabel === "8:05 pm",
-  "end follows the clock"
-);
+const wed65 = summary.perDay.find((d) => d.label === "Wed");
+assert(wed65.endLabel === "7:00 pm", "end stays the plan at 8:05");
+assert(wed65.overtimeMin === 65, "65 min past checkout, got " + wed65.overtimeMin);
+assert(OH.formatHours(wed65.overtimeMin / 60) === "1:05", "bracket reads 1:05");
 
 // Fri start override → entered start, leave computed from remaining
 summary = OH.summarizeWeek(daysThu, { "2026-08-07": { start: "11:00" } }, thuNow);

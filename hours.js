@@ -493,8 +493,9 @@
     const todayWd = weekdayMon1(now);
     applyProjections(perDay, needed, todayWd);
 
-    // past today's planned checkout: End is the current clock, not the old plan
+    // past today's planned checkout: keep that checkout, count whole minutes after it
     const todayRow = perDay.find((d) => d.key === todayKey);
+    let overtimeMin = 0;
     if (
       todayRow &&
       todayRow.status === "projected" &&
@@ -502,7 +503,8 @@
       todayRow.end <= now
     ) {
       todayRow.endKind = "overtime";
-      todayRow.endLabel = formatPktTime(now);
+      overtimeMin = Math.floor((now - todayRow.end) / 60000);
+      if (overtimeMin >= 1) todayRow.overtimeMin = overtimeMin;
     }
 
     // pace vs completed days only (both check-in + check-out / entered leave / manual)
@@ -513,12 +515,13 @@
         d.status === "manual"
     ).length;
     const expectedByToday = daily * doneCount;
-    const vsToday = banked - expectedByToday;
+    const otH = overtimeMin / 60;
+    const vsToday = banked - expectedByToday + otH;
 
     return {
       weekStart: keys[0],
-      banked,
-      needed,
+      banked: banked + otH,
+      needed: Math.max(0, needed - otH),
       target: weekTarget,
       dailyHours: daily,
       expectedByToday,

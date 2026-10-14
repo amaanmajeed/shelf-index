@@ -46,7 +46,9 @@ chrome.storage.local.get(["shelfIndexLastResult", THEME_KEY], (r) => {
 });
 
 chrome.storage.onChanged.addListener((ch, area) => {
-  if (area === "local" && THEME_KEY in ch) paintTheme(ch[THEME_KEY].newValue !== false);
+  if (area !== "local") return;
+  if (THEME_KEY in ch) paintTheme(ch[THEME_KEY].newValue !== false);
+  if (ch.shelfIndexLastResult) showLast(ch.shelfIndexLastResult.newValue);
 });
 
 document.getElementById("clear").addEventListener("click", async () => {

@@ -303,9 +303,14 @@ html:not(.si-light) {
   .o_content,
   .o_view_controller,
   .o_form_sheet_bg,
+  .o_kanban_view,
+  .o_kanban_renderer,
   .oh_dashboards,
   .container-fluid.o_hr_dashboard {
+    --Kanban-background: var(--si-bg);
+    --KanbanGroup-background: var(--si-bg);
     background-color: var(--si-bg) !important;
+    background: var(--si-bg) !important;
     color: var(--si-text) !important;
     color-scheme: dark;
   }
@@ -347,11 +352,24 @@ html:not(.si-light) {
   .o-mail-Form-chatter,
   .o-mail-Discuss,
   .o-mail-DiscussSidebar,
+  .o-mail-DiscussContent,
+  .o-mail-DiscussContent-header,
+  .o-mail-DiscussContent-core,
+  .o-mail-DiscussContent-main,
+  .o-mail-DiscussSearch,
+  .o-mail-Thread,
+  .o-mail-Composer,
+  .o-mail-Composer-bg,
+  .o-mail-Composer-input,
   .o-mail-Message,
+  .o-mail-NavigableList,
+  .o-mail-discussSidebarBgColor,
   .card,
+  .card-body,
   .bg-white,
   .bg-view,
   .bg-light,
+  .bg-100,
   .oh-card,
   .leave-manager,
   .hr-chart-1,
@@ -429,6 +447,7 @@ html:not(.si-light) {
   }
 
   .o_calendar_disabled .fc-daygrid-day-number {
+    mix-blend-mode: normal;
     color: #b7aed4 !important;
     font-weight: 600;
   }
@@ -456,22 +475,32 @@ html:not(.si-light) {
   .o_timeoff_card .o_timeoff_name,
   .fc-toolbar-title,
   .fc-multimonth-title,
-  .fc-col-header-cell,
-  .fc-daygrid-day-number {
+  .fc-col-header-cell {
     color: var(--si-text) !important;
   }
 
-  .fc-daygrid-day:has(.fc-bg-event) .fc-daygrid-day-number {
-    color: var(--si-bg) !important;
+  /*
+   * Leave pills are light; FC only mounts .fc-bg-event on the start day and
+   * stretches it across the range. mix-blend-mode keeps day numbers readable
+   * on both dark cells and light leave fills (incl. non-start days like Jun 10).
+   */
+  .fc-daygrid-day-number {
+    color: #fff !important;
     font-weight: 700;
+    mix-blend-mode: difference;
   }
 
   .o_calendar_widget {
     --o-cw-color: var(--si-text);
   }
 
-  /* Odoo year-view hover chip: light fill + black text, loaded after us */
+  .fc-day-today .fc-daygrid-day-number {
+    mix-blend-mode: normal;
+  }
+
+  /* Odoo year-view hover chip */
   .o_calendar_renderer .o_calendar_widget .fc-dayGridYear-view:not(.fc-readonly-year-view) .fc-daygrid-body tr .fc-day .fc-daygrid-day-top:hover > .fc-daygrid-day-number {
+    mix-blend-mode: normal;
     --o-cw-color: #fff !important;
     --o-cw-bg: var(--si-purple) !important;
     color: #fff !important;
@@ -512,10 +541,21 @@ html:not(.si-light) {
     color: #fff !important;
   }
 
-  .dropdown-item:hover,
-  .dropdown-item:focus {
-    background-color: rgba(113, 99, 158, 0.18) !important;
+  .dropdown-item,
+  .o-dropdown-item,
+  .dropdown-item.active,
+  .dropdown-item.focus,
+  .dropdown-item:active,
+  .dropdown-item:focus,
+  .dropdown-item:hover {
     color: var(--si-text) !important;
+  }
+
+  .dropdown-item:hover,
+  .dropdown-item:focus,
+  .dropdown-item.focus,
+  .dropdown-item.active {
+    background-color: rgba(113, 99, 158, 0.18) !important;
   }
 
   .dropdown-menu,
@@ -532,6 +572,12 @@ html:not(.si-light) {
     --popover-border-color: var(--si-border);
     --tooltip-bg: var(--si-elevated);
     --tooltip-color: var(--si-text);
+    --bs-dropdown-color: var(--si-text);
+    --bs-dropdown-link-color: var(--si-text);
+    --bs-dropdown-link-hover-color: var(--si-text);
+    --bs-dropdown-link-active-color: var(--si-text);
+    --bs-dropdown-link-hover-bg: rgba(113, 99, 158, 0.18);
+    --bs-dropdown-link-active-bg: rgba(113, 99, 158, 0.18);
     background-color: var(--si-elevated) !important;
     color: var(--si-text) !important;
     border-color: var(--si-border) !important;
@@ -593,6 +639,83 @@ html:not(.si-light) {
 
   .o-mail-Chatter-top.shadow-sm {
     background-image: none !important;
+  }
+
+  /* Discuss: Odoo hardcodes white / gray-700 with !important */
+  .o-mail-discussSidebarBgColor,
+  .o-mail-DiscussContent-header {
+    background-color: var(--si-surface) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o-mail-DiscussContent-core,
+  .o-mail-Discuss,
+  .o-mail-Thread {
+    background-color: var(--si-bg) !important;
+    color: var(--si-text) !important;
+    --mail-Composer-bg: var(--si-elevated);
+    --mail-DiscussSidebar-itemActiveBgColor: rgba(113, 99, 158, 0.28);
+    --mail-DiscussSidebar-itemActiveOutlineColor: rgba(113, 99, 158, 0.45);
+  }
+
+  .o-discuss-text-body {
+    color: var(--si-text) !important;
+  }
+
+  .o-mail-DiscussSidebar-item:hover {
+    background-color: rgba(113, 99, 158, 0.14) !important;
+  }
+
+  .o-mail-Message-bubble,
+  .o-mail-Message-bubble.o-blue,
+  .o-mail-Message-bubbleTail,
+  .o-mail-Message-bubbleTail.o-blue {
+    --o-message-bubble-bg: #2a3348;
+    --o-message-bubble-border-color: #3d4a66;
+  }
+
+  .o-mail-Message-bubble.o-green,
+  .o-mail-Message-bubbleTail.o-green {
+    --o-message-bubble-bg: #243a32;
+    --o-message-bubble-border-color: #2f5548;
+  }
+
+  .o-mail-Message-bubble.o-orange,
+  .o-mail-Message-bubbleTail.o-orange {
+    --o-message-bubble-bg: #3a3224;
+    --o-message-bubble-border-color: #55482f;
+  }
+
+  .o-mail-Message-bubbleTailBg {
+    color: var(--o-message-bubble-bg) !important;
+  }
+
+  .o-mail-Message-bubbleTailBorder {
+    color: var(--o-message-bubble-border-color) !important;
+  }
+
+  .o_odoobot_command {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-accent) !important;
+  }
+
+  .o-mail-Composer-bg {
+    background-color: var(--mail-Composer-bg, var(--si-elevated)) !important;
+  }
+
+  .o-mail-ImStatus.bg-white {
+    background-color: var(--si-surface) !important;
+  }
+
+  .o-mail-DiscussSearch-inputContainer,
+  .o-mail-DiscussSearch-inputContainer input {
+    background-color: var(--si-elevated) !important;
+    color: var(--si-text) !important;
+  }
+
+  .o-mail-DiscussSearch-inputContainer:has(.o-mail-DiscussSearch-inputClickable:hover),
+  .o-mail-DiscussSearch-inputContainer:has(.o-mail-DiscussSearch-inputClickable:hover) input {
+    background-color: rgba(113, 99, 158, 0.22) !important;
   }
 
   .o_list_renderer {
@@ -678,6 +801,13 @@ html:not(.si-light) {
   .text-500,
   .hr_notification p {
     color: var(--si-muted) !important;
+  }
+
+  .oe_view_nocontent_create,
+  .o_nocontent_help,
+  .o_nocontent_help > p:first-of-type,
+  .dashboard-loading-status {
+    color: var(--si-text) !important;
   }
 
   .stat-digit,
