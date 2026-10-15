@@ -348,27 +348,40 @@
     const bellIcon = systray.querySelector(".fa-bell");
     const bell =
       bellIcon && bellIcon.closest(".o_mail_navbar_item, .dropdown, div");
+    const leave = document.createElement("div");
+    leave.id = "shelf-index-leave";
+    leave.className = "si-nav o_nav_entry d-flex align-items-center";
+    leave.hidden = true;
+    leave.innerHTML =
+      '<a href="#" class="si-nav-btn si-nav-leave d-flex align-items-center" title="Leave today" role="button" aria-label="Leave today"></a>';
+    const pace = document.createElement("div");
+    pace.id = "shelf-index-pace";
+    pace.className = "si-nav o_nav_entry d-flex align-items-center";
+    pace.hidden = true;
+    pace.innerHTML =
+      '<a href="#" class="si-nav-btn si-nav-facts d-flex align-items-center" title="vs completed days (check-in + check-out)" role="button" aria-label="Pace"></a>';
     const wrap = document.createElement("div");
     wrap.id = NAV_ID;
-    wrap.className = "o_nav_entry d-flex align-items-center";
+    wrap.className = "si-nav o_nav_entry d-flex align-items-center";
     wrap.innerHTML =
-      '<a href="#" class="si-nav-btn si-nav-facts d-flex align-items-center" hidden title="vs completed days (check-in + check-out)" role="button" aria-label="Pace"></a>' +
       '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><img class="si-nav-logo" src="' +
       chrome.runtime.getURL("icons/shelf-index.svg") +
       '" alt="" width="20" height="20" /></a>' +
       '<a href="#" class="si-nav-btn si-theme-btn d-flex align-items-center" title="Toggle light mode" role="button" aria-label="Toggle theme">' +
       THEME_ICONS +
       "</a>";
-    wrap.querySelectorAll(".si-nav-btn:not(.si-theme-btn)").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        const open = document.getElementById(PANEL_ID);
-        if (open) {
-          open.remove();
-          return;
-        }
-        run().catch((err) => {
-          if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+    [leave, pace, wrap].forEach((entry) => {
+      entry.querySelectorAll(".si-nav-btn:not(.si-theme-btn)").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          const open = document.getElementById(PANEL_ID);
+          if (open) {
+            open.remove();
+            return;
+          }
+          run().catch((err) => {
+            if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
+          });
         });
       });
     });
@@ -376,34 +389,54 @@
       e.preventDefault();
       toggleTheme();
     });
-    if (bell) systray.insertBefore(wrap, bell);
-    else systray.appendChild(wrap);
+    if (bell) {
+      systray.insertBefore(leave, bell);
+      systray.insertBefore(pace, bell);
+      systray.insertBefore(wrap, bell);
+    } else {
+      systray.appendChild(leave);
+      systray.appendChild(pace);
+      systray.appendChild(wrap);
+    }
     paintNavFacts();
     return true;
   }
 
-  // ponytail: navbar shows pace only; banked and remaining stay in the panel
+  // ponytail: navbar shows today's leave and pace; banked and remaining stay in the panel
   let navFacts = null;
 
   function paintNavFacts(summary) {
     if (summary !== undefined) navFacts = summary;
-    const el = document.querySelector("#" + NAV_ID + " .si-nav-facts");
-    if (!el) return;
+    const leaveEl = document.querySelector("#shelf-index-leave");
+    const paceEl = document.querySelector("#shelf-index-pace .si-nav-facts");
+    if (!leaveEl || !paceEl) return;
     const s = navFacts;
     const vs = s && s.vsToday;
-    el.classList.remove("si-ahead", "si-behind", "si-even");
-    if (!s || vs == null || isNaN(vs)) {
-      el.hidden = true;
-      el.textContent = "";
+    const pace = formatVsToday(vs);
+    paceEl.classList.remove("si-ahead", "si-behind", "si-even");
+    if (!pace) {
+      leaveEl.hidden = true;
+      paceEl.textContent = "";
+      paceEl.parentElement.hidden = true;
       return;
     }
-    const vsCls =
-      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even";
-    const label = formatVsToday(vs);
-    el.hidden = false;
-    el.textContent = label;
-    el.classList.add(vsCls);
-    el.setAttribute("aria-label", label);
+    const today = s.perDay && s.perDay.find((d) => d.key === s.todayKey);
+    const leave = today && today.endLabel && today.endLabel !== "—" ? today.endLabel : "";
+    const link = leaveEl.querySelector(".si-nav-leave");
+    if (leave && link) {
+      leaveEl.hidden = false;
+      link.textContent = leave;
+      link.setAttribute("aria-label", leave);
+    } else {
+      leaveEl.hidden = true;
+    }
+    paceEl.hidden = false;
+    paceEl.parentElement.hidden = false;
+    paceEl.textContent = pace;
+    paceEl.classList.add(
+      vs > 0.008 ? "si-ahead" : vs < -0.008 ? "si-behind" : "si-even"
+    );
+    paceEl.setAttribute("aria-label", pace);
   }
 
   function toggleTheme() {
