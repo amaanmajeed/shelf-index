@@ -362,6 +362,11 @@
     wrap.querySelectorAll(".si-nav-btn:not(.si-theme-btn)").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
+        const open = document.getElementById(PANEL_ID);
+        if (open) {
+          open.remove();
+          return;
+        }
         run().catch((err) => {
           if (/invalidated/i.test(String(err && err.message))) showReloadNeeded();
         });
