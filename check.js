@@ -98,7 +98,7 @@ const fri3 = summary.perDay.find((d) => d.label === "Fri");
 assert(fri3.status === "projected", "Fri projected when absent");
 assert(fri3.startKind === "projected", "Fri start yellow");
 assert(fri3.endKind === "projected", "Fri end yellow");
-assert(fri3.startLabel === "10:00 am", "Fri start mirrors Thu, got " + fri3.startLabel);
+assert(fri3.startLabel === "10:00 am", "Fri start avg of 10:00 check-ins, got " + fri3.startLabel);
 assert(Math.abs(fri3.hours - 9) < 0.01, "Fri needs 9h (36 banked), got " + fri3.hours);
 assert(fri3.endLabel === "7:00 pm", "Fri leave 7pm, got " + fri3.endLabel);
 
@@ -319,6 +319,34 @@ summary = OH.summarizeWeek(octDays.concat(attDays.filter((d) => d.date < "2026-1
 assert(summary.perDay.find((d) => d.label === "Mon").status === "ok", "Mon from attendances");
 const friRow = summary.perDay.find((d) => d.label === "Fri");
 assert(friRow.checkIn && friRow.status === "projected", "Fri still open, got " + friRow.status);
+
+// Projected start is the 30-day average check-in, not the latest day.
+// 9:00, 9:00, 9:00, 11:00 → 9:30. Stored 8:00 inside the window pulls it to 9:12.
+const daysAvg = [
+  { date: "2026-08-03", hours: 9, check_in: "2026-08-03 04:00:00", check_out: "2026-08-03 13:00:00" },
+  { date: "2026-08-04", hours: 9, check_in: "2026-08-04 04:00:00", check_out: "2026-08-04 13:00:00" },
+  { date: "2026-08-05", hours: 9, check_in: "2026-08-05 04:00:00", check_out: "2026-08-05 13:00:00" },
+  { date: "2026-08-06", hours: 9, check_in: "2026-08-06 06:00:00", check_out: "2026-08-06 15:00:00" },
+  { date: "2026-08-07", hours: 0, check_in: null, check_out: null, is_absent: true },
+];
+summary = OH.summarizeWeek(daysAvg, {}, now);
+const friAvg = summary.perDay.find((d) => d.label === "Fri");
+assert(friAvg.startKind === "projected", "avg Fri start projected");
+assert(friAvg.startLabel === "9:30 am", "avg of this week is 9:30, got " + friAvg.startLabel);
+assert(friAvg.endLabel === "6:30 pm", "leave from 9:30+9h, got " + friAvg.endLabel);
+assert(OH.startWindow(now)[0] === "2026-07-09", "30-day window opens Jul 9, got " + OH.startWindow(now)[0]);
+const storedStarts = {
+  "2026-07-08": "06:00",
+  "2026-07-09": "08:00",
+  "2026-08-06": "08:00",
+};
+const clocks = OH.mergeStartClocks(storedStarts, daysAvg, now);
+assert(!clocks["2026-07-08"], "clock older than 30 days dropped");
+assert(clocks["2026-07-09"] === "08:00", "day 30 kept");
+assert(clocks["2026-08-06"] === "11:00", "live check-in wins, got " + clocks["2026-08-06"]);
+summary = OH.summarizeWeek(daysAvg, {}, now, 9, storedStarts);
+const friHist = summary.perDay.find((d) => d.label === "Fri");
+assert(friHist.startLabel === "9:12 am", "avg includes saved 8:00, got " + friHist.startLabel);
 
 assert(OH.isNewerVersion("1.0.1", "1.0.0"), "1.0.1 is newer");
 assert(!OH.isNewerVersion("1.0.0", "1.0.0"), "same version is not newer");

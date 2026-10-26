@@ -266,24 +266,78 @@
     );
   }
 
-  /** Copy wall-clock PKT from `from` onto `dayKey`. */
-  function sameClockOnDay(from, dayKey) {
-    if (!from) return null;
+  /** PKT wall clock "HH:MM". */
+  function pktHhmm(from) {
+    const d = from instanceof Date ? from : parseOdooDt(from);
+    if (!d || isNaN(d)) return null;
     const parts = new Intl.DateTimeFormat("en-GB", {
       timeZone: TZ,
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-    }).formatToParts(from instanceof Date ? from : parseOdooDt(from));
+    }).formatToParts(d);
     const get = (t) => parts.find((p) => p.type === t).value;
-    return new Date(dayKey + "T" + get("hour") + ":" + get("minute") + ":00+05:00");
+    let h = get("hour");
+    if (h === "24") h = "00";
+    return pad(+h) + ":" + pad(+get("minute"));
   }
 
-  /** Default Fri start: latest Mon–Thu check-in clock, else 10:00am PKT. */
-  function defaultStartFor(perDay, dayKey) {
-    for (let i = perDay.length - 1; i >= 0; i--) {
-      if (perDay[i].key === dayKey) continue;
-      if (perDay[i].start) return sameClockOnDay(perDay[i].start, dayKey);
+  /** Inclusive PKT window: today and the 29 days before it. */
+  function startWindow(now) {
+    const today = dateKey(now || new Date());
+    return [addDaysKey(today, -29), today];
+  }
+
+  /** Check-in clocks inside the 30-day window. { "YYYY-MM-DD": "HH:MM" }. */
+  function collectStartClocks(days, now) {
+    const win = startWindow(now);
+    const out = {};
+    (days || []).forEach((d) => {
+      if (!d || !d.check_in) return;
+      const dt = parseOdooDt(d.check_in);
+      const hhmm = pktHhmm(dt);
+      if (!hhmm) return;
+      const k = dateKey(dt);
+      if (k < win[0] || k > win[1]) return;
+      out[k] = hhmm;
+    });
+    return out;
+  }
+
+  /**
+   * Saved clocks plus live check-ins. Live wins. Drops anything outside 30 days.
+   * ponytail: arithmetic mean of minutes — check-ins don't cross midnight.
+   */
+  function mergeStartClocks(stored, days, now) {
+    const win = startWindow(now);
+    const clocks = collectStartClocks(days, now);
+    Object.keys(stored || {}).forEach((k) => {
+      if (k < win[0] || k > win[1] || clocks[k]) return;
+      if (/^\d{2}:\d{2}$/.test(stored[k])) clocks[k] = stored[k];
+    });
+    return clocks;
+  }
+
+  function avgStartHhmm(clocks) {
+    const keys = Object.keys(clocks || {});
+    let sum = 0;
+    let n = 0;
+    keys.forEach((k) => {
+      const m = String(clocks[k]).match(/^(\d{2}):(\d{2})$/);
+      if (!m) return;
+      sum += +m[1] * 60 + +m[2];
+      n++;
+    });
+    if (!n) return null;
+    const mins = Math.round(sum / n) % 1440;
+    return pad(Math.floor(mins / 60)) + ":" + pad(mins % 60);
+  }
+
+  /** Projected start: 30-day average check-in, else 10:00am PKT. */
+  function defaultStartFor(dayKey, avgHhmm) {
+    if (avgHhmm) {
+      const t = parseTimeOnDay(dayKey, avgHhmm);
+      if (t) return t;
     }
     return new Date(dayKey + "T10:00:00+05:00");
   }
@@ -292,7 +346,7 @@
    * Project leave on remaining incomplete weekdays (today→Fri, always
    * including incomplete Thu/Fri) so solid + projected hits WEEK_TARGET.
    */
-  function applyProjections(perDay, needed, todayWd) {
+  function applyProjections(perDay, needed, todayWd, avgHhmm) {
     if (needed <= 0) return;
     const from = Math.min(todayWd || 4, 4);
     const slots = perDay.filter(
@@ -302,7 +356,7 @@
     const share = needed / slots.length;
     slots.forEach((d) => {
       if (!d.start) {
-        d.start = defaultStartFor(perDay, d.key);
+        d.start = defaultStartFor(d.key, avgHhmm);
         d.startLabel = formatPktTime(d.start);
         d.startKind = "projected";
       }
@@ -423,8 +477,9 @@
    * @param {object} overrides - { "YYYY-MM-DD": { leave } | { hours } }
    * @param {Date} [now]
    * @param {number} [dailyHours] - 9 (default) or 6 → week target 45 or 30
+   * @param {object} [storedStarts] - { "YYYY-MM-DD": "HH:MM" } check-ins, last 30 days
    */
-  function summarizeWeek(days, overrides, now, dailyHours) {
+  function summarizeWeek(days, overrides, now, dailyHours, storedStarts) {
     now = now || new Date();
     overrides = overrides || {};
     const daily = +dailyHours === 6 ? 6 : 9;
@@ -491,7 +546,8 @@
     const needed = Math.max(0, weekTarget - banked);
     const todayKey = dateKey(now);
     const todayWd = weekdayMon1(now);
-    applyProjections(perDay, needed, todayWd);
+    const avgHhmm = avgStartHhmm(mergeStartClocks(storedStarts, days, now));
+    applyProjections(perDay, needed, todayWd, avgHhmm);
 
     // past today's planned checkout: keep that checkout, count whole minutes after it
     const todayRow = perDay.find((d) => d.key === todayKey);
@@ -551,6 +607,8 @@
     formatHours,
     isNewerVersion,
     dayHours,
+    startWindow,
+    mergeStartClocks,
     weekCompleteSnapshot,
     priorMonthWeekKeys,
     attendanceRangeUtc,

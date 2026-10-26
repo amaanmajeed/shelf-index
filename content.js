@@ -6,6 +6,7 @@
   const STORAGE_LAST = "shelfIndexLastResult";
   const STORAGE_CACHE = "shelfIndexDayCache";
   const STORAGE_WEEK = "shelfIndexWeekComplete";
+  const STORAGE_STARTS = "shelfIndexStartClocks";
   const STORAGE_DAILY = "shelfIndexDailyHours";
   const VERSION_URL =
     "https://raw.githubusercontent.com/amaanmajeed/shelf-index/main/manifest.json";
@@ -16,6 +17,7 @@
   let lastDays = null;
   let lastOverrides = {};
   let lastDaily = 9;
+  let lastStarts = {};
 
   function extAlive() {
     try {
@@ -96,12 +98,12 @@
     ).then((rows) => rows || []);
   }
 
-  /** My Attendances rows for this user's missing prior-month weekdays. */
-  async function fetchPriorAttendances(keys) {
+  /** hr.attendance rows in [fromKey, toKey] inclusive (PKT dates). */
+  async function fetchAttendances(fromKey, toKey, limit, order) {
     const info = await odooCall("/web/session/get_session_info", {});
     const userId = info && info.uid;
     if (!userId) return [];
-    const range = SI.attendanceRangeUtc(keys);
+    const range = SI.attendanceRangeUtc([fromKey, toKey]);
     if (!range) return [];
     const rows = await odooCall(
       "/web/dataset/call_kw/hr.attendance/search_read",
@@ -116,16 +118,47 @@
             ["check_in", "<", range[1]],
           ],
           fields: ["check_in", "check_out", "worked_hours"],
-          limit: 40,
-          order: "check_in asc",
+          // ponytail: 120 covers 30 days of multi-punch; raise if a day is missing
+          limit: limit || 40,
+          order: order || "check_in asc",
         },
       }
     );
+    return SI.daysFromAttendances(rows);
+  }
+
+  /** My Attendances rows for this user's missing prior-month weekdays. */
+  async function fetchPriorAttendances(keys) {
+    if (!keys || !keys.length) return [];
+    const days = await fetchAttendances(keys[0], keys[keys.length - 1], 40);
     const want = {};
     keys.forEach((k) => {
       want[k] = true;
     });
-    return SI.daysFromAttendances(rows).filter((d) => want[d.date]);
+    return days.filter((d) => want[d.date]);
+  }
+
+  /** Check-in clocks for the last 30 days. Attendance fill, then save. */
+  async function rememberStarts(days) {
+    const now = new Date();
+    const win = SI.startWindow(now);
+    let prev = {};
+    let fetched = [];
+    if (extAlive()) {
+      try {
+        prev = (await storageGet([STORAGE_STARTS]))[STORAGE_STARTS] || {};
+      } catch (_e) {}
+      try {
+        fetched = await fetchAttendances(win[0], win[1], 120, "check_in desc");
+      } catch (_e) {}
+    }
+    const clocks = SI.mergeStartClocks(prev, (days || []).concat(fetched), now);
+    if (extAlive()) {
+      try {
+        await storageSet({ [STORAGE_STARTS]: clocks });
+      } catch (_e) {}
+    }
+    return clocks;
   }
 
   /** Keep this week's finished days so a new month doesn't drop Mon–Thu. */
@@ -159,18 +192,24 @@
           });
         } catch (_e) {}
       }
-      return rememberWeek(days);
+      return finishDays(days);
     } catch (e) {
       if (/invalidated/i.test(String(e && e.message))) throw e;
       try {
         if (extAlive()) {
           const cached = (await storageGet([STORAGE_CACHE]))[STORAGE_CACHE];
           if (cached && cached.days && cached.days.length)
-            return rememberWeek(cached.days);
+            return finishDays(cached.days);
         }
       } catch (_e) {}
       throw e;
     }
+  }
+
+  async function finishDays(days) {
+    const merged = await rememberWeek(days);
+    lastStarts = await rememberStarts(merged);
+    return merged;
   }
 
   async function getOverrides() {
@@ -200,7 +239,13 @@
   }
 
   function summarize(days, overrides, daily) {
-    return SI.summarizeWeek(days, overrides, new Date(), daily || lastDaily);
+    return SI.summarizeWeek(
+      days,
+      overrides,
+      new Date(),
+      daily || lastDaily,
+      lastStarts
+    );
   }
 
   function syncDailyToggle(panel, daily) {
@@ -1009,6 +1054,7 @@
       lastDays = null;
       lastSummary = null;
       lastDaily = 9;
+      lastStarts = {};
       editingKey = null;
       skippedKeys = {};
       const el = document.getElementById(PANEL_ID);
@@ -1038,9 +1084,16 @@
   watchNav();
   startOvertimeTick();
   // Cached days + the clock, then a fresh Odoo pull. Popup only reads what this writes.
-  storageGet([STORAGE_CACHE, STORAGE_OVERRIDES, STORAGE_DAILY, STORAGE_LAST])
+  storageGet([
+    STORAGE_CACHE,
+    STORAGE_OVERRIDES,
+    STORAGE_DAILY,
+    STORAGE_LAST,
+    STORAGE_STARTS,
+  ])
     .then((bag) => {
       const cached = bag[STORAGE_CACHE];
+      lastStarts = bag[STORAGE_STARTS] || {};
       if (cached && cached.days && cached.days.length) {
         lastOverrides = bag[STORAGE_OVERRIDES] || {};
         lastDaily = +bag[STORAGE_DAILY] === 6 ? 6 : 9;
