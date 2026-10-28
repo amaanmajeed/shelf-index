@@ -626,6 +626,8 @@
       expectedByToday,
       vsToday,
       todayKey,
+      // the shift still open: yesterday's after midnight, else today's
+      leaveKey: otRow ? otRow.key : todayKey,
       todayWd,
       perDay,
       formatHours,

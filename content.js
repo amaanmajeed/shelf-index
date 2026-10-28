@@ -465,13 +465,14 @@
       paceEl.parentElement.hidden = true;
       return;
     }
-    const today = s.perDay && s.perDay.find((d) => d.key === s.todayKey);
-    const leave = today && today.endLabel && today.endLabel !== "—" ? today.endLabel : "";
+    const today = s.perDay && s.perDay.find((d) => d.key === (s.leaveKey || s.todayKey));
+    const leave = today && today.endLabel && today.endLabel !== "—" ? endText(today) : "";
     const link = leaveEl.querySelector(".si-nav-leave");
     if (leave && link) {
       leaveEl.hidden = false;
       link.textContent = leave;
       link.setAttribute("aria-label", leave);
+      link.classList.toggle("si-overtime", today.endKind === "overtime");
     } else {
       leaveEl.hidden = true;
     }

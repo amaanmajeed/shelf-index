@@ -127,6 +127,7 @@
   display: none !important;
 }
 
+.si-nav-leave.si-overtime,
 .si-nav-facts.si-ahead {
   color: #9ef0c0 !important;
 }

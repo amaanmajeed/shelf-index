@@ -365,3 +365,7 @@ assert(!OH.isNewerVersion("1.0.0", "1.0.1"), "older remote is not newer");
 assert(OH.isNewerVersion("1.0.10", "1.0.9"), "1.0.10 beats 1.0.9 numerically");
 
 console.log("ok — projections:", summary.needed.toFixed(2) + "h needed, target " + summary.target);
+
+// Thu 1:24am, still on Wed's shift → navbar leave comes from Wed, not Thu
+assert(OH.summarizeWeek(daysWed, {}, thuAm).leaveKey === "2026-08-05", "overnight leaveKey is Wed");
+assert(OH.summarizeWeek(daysWed, {}, wedLate).leaveKey === "2026-08-05", "same-day leaveKey is today");
