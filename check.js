@@ -167,6 +167,15 @@ assert(Math.abs(wed.hours - 9) < 0.01, "Wed 9h share, got " + wed.hours);
 assert(wed.endLabel === "7:00 pm", "Wed leave 7pm, got " + wed.endLabel);
 assert(wed.endKind === "projected", "Wed end yellow");
 
+// Thu 1:24am, Wed still clocked in overnight — Wed must keep a projected end
+const thuAm = new Date("2026-08-06T01:24:00+05:00");
+summary = OH.summarizeWeek(daysWed, {}, thuAm);
+const wedNight = summary.perDay.find((d) => d.label === "Wed");
+assert(wedNight.endLabel, "overnight Wed has an end, got " + wedNight.endLabel);
+assert(wedNight.status === "projected", "overnight Wed projected, got " + wedNight.status);
+assert(wedNight.endKind === "overtime", "past leave is overtime, got " + wedNight.endKind);
+assert(Math.abs(wedNight.hours - 9) < 0.01, "Wed still in the 9h share, got " + wedNight.hours);
+
 // Wed 7:13pm, planned leave 7:00pm → End stays 7:00 pm, extra is (+0:13)
 const wedLate = new Date("2026-08-05T19:13:00+05:00");
 summary = OH.summarizeWeek(daysWed, {}, wedLate);

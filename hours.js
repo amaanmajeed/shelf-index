@@ -345,12 +345,23 @@
   /**
    * Project leave on remaining incomplete weekdays (today→Fri, always
    * including incomplete Thu/Fri) so solid + projected hits WEEK_TARGET.
+   * Latest still-clocked-in day before today (overnight) stays in the pool.
    */
   function applyProjections(perDay, needed, todayWd, avgHhmm) {
     if (needed <= 0) return;
     const from = Math.min(todayWd || 4, 4);
+    let openPrior = null;
+    for (let i = perDay.length - 1; i >= 0; i--) {
+      if (perDay[i].weekday < from && perDay[i].status === "needs_leave") {
+        openPrior = perDay[i];
+        break;
+      }
+    }
     const slots = perDay.filter(
-      (d) => d.weekday >= from && d.weekday <= 5 && !isSolid(d)
+      (d) =>
+        d.weekday <= 5 &&
+        !isSolid(d) &&
+        (d.weekday >= from || d === openPrior)
     );
     if (!slots.length) return;
     const share = needed / slots.length;
@@ -549,18 +560,37 @@
     const avgHhmm = avgStartHhmm(mergeStartClocks(storedStarts, days, now));
     applyProjections(perDay, needed, todayWd, avgHhmm);
 
-    // past today's planned checkout: keep that checkout, count whole minutes after it
+    // past planned checkout: keep that time, count whole minutes after it.
+    // Overnight: only when today has no check-in (still on yesterday's shift).
     const todayRow = perDay.find((d) => d.key === todayKey);
-    let overtimeMin = 0;
+    let otRow = null;
     if (
       todayRow &&
       todayRow.status === "projected" &&
       todayRow.end &&
       todayRow.end <= now
     ) {
-      todayRow.endKind = "overtime";
-      overtimeMin = Math.floor((now - todayRow.end) / 60000);
-      if (overtimeMin >= 1) todayRow.overtimeMin = overtimeMin;
+      otRow = todayRow;
+    } else if (todayRow && !todayRow.checkIn) {
+      for (let i = perDay.length - 1; i >= 0; i--) {
+        const d = perDay[i];
+        if (
+          d.weekday < todayWd &&
+          d.status === "projected" &&
+          d.checkIn &&
+          d.end &&
+          d.end <= now
+        ) {
+          otRow = d;
+          break;
+        }
+      }
+    }
+    let overtimeMin = 0;
+    if (otRow) {
+      otRow.endKind = "overtime";
+      overtimeMin = Math.floor((now - otRow.end) / 60000);
+      if (overtimeMin >= 1) otRow.overtimeMin = overtimeMin;
     }
 
     // pace vs completed days only (both check-in + check-out / entered leave / manual)

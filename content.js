@@ -519,6 +519,16 @@
     el.querySelector(".si-close").addEventListener("click", () => {
       el.remove();
     });
+    // close on outside click; skip .si-nav — those buttons toggle the panel themselves
+    document.addEventListener(
+      "pointerdown",
+      (e) => {
+        if (!el.isConnected || el.contains(e.target) || e.target.closest(".si-nav"))
+          return;
+        el.remove();
+      },
+      { once: true }
+    );
     startOvertimeTick();
     el.querySelector(".si-refresh").addEventListener("click", () => {
       run().catch((err) => {
