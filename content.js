@@ -388,6 +388,12 @@
 
   function ensureNavBtn() {
     if (document.getElementById(NAV_ID)) return true;
+    let logoUrl;
+    try {
+      logoUrl = chrome.runtime.getURL("icons/shelf-index.svg");
+    } catch (_e) {
+      return false; // context invalidated after an extension reload
+    }
     const systray = document.querySelector(".o_menu_systray");
     if (!systray) return false;
     const bellIcon = systray.querySelector(".fa-bell");
@@ -410,7 +416,7 @@
     wrap.className = "si-nav o_nav_entry d-flex align-items-center";
     wrap.innerHTML =
       '<a href="#" class="si-nav-btn d-flex align-items-center" title="Shelf Index" role="button" aria-label="Shelf Index"><img class="si-nav-logo" src="' +
-      chrome.runtime.getURL("icons/shelf-index.svg") +
+      logoUrl +
       '" alt="" width="20" height="20" /></a>' +
       '<a href="#" class="si-nav-btn si-theme-btn d-flex align-items-center" title="Toggle light mode" role="button" aria-label="Toggle theme">' +
       THEME_ICONS +
