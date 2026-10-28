@@ -590,7 +590,20 @@
     if (otRow) {
       otRow.endKind = "overtime";
       overtimeMin = Math.floor((now - otRow.end) / 60000);
-      if (overtimeMin >= 1) otRow.overtimeMin = overtimeMin;
+      if (overtimeMin >= 1) {
+        otRow.overtimeMin = overtimeMin;
+        // that row now holds its share + the extra; the rest split what's left
+        const others = perDay.filter(
+          (d) => d !== otRow && d.status === "projected"
+        );
+        const left = others.reduce((s, d) => s + d.hours, 0) - overtimeMin / 60;
+        otRow.hours += overtimeMin / 60;
+        others.forEach((d) => {
+          d.hours = Math.max(0, left) / others.length;
+          d.end = new Date(d.start.getTime() + d.hours * 3600000);
+          d.endLabel = formatPktTime(d.end);
+        });
+      }
     }
 
     // pace vs completed days only (both check-in + check-out / entered leave / manual)

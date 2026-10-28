@@ -174,7 +174,7 @@ const wedNight = summary.perDay.find((d) => d.label === "Wed");
 assert(wedNight.endLabel, "overnight Wed has an end, got " + wedNight.endLabel);
 assert(wedNight.status === "projected", "overnight Wed projected, got " + wedNight.status);
 assert(wedNight.endKind === "overtime", "past leave is overtime, got " + wedNight.endKind);
-assert(Math.abs(wedNight.hours - 9) < 0.01, "Wed still in the 9h share, got " + wedNight.hours);
+assert(Math.abs(wedNight.hours - (9 + 6.4)) < 0.01, "Wed = 9h share + 6:24 extra, got " + wedNight.hours);
 
 // Wed 7:13pm, planned leave 7:00pm → End stays 7:00 pm, extra is (+0:13)
 const wedLate = new Date("2026-08-05T19:13:00+05:00");
@@ -199,10 +199,12 @@ assert(
   Math.abs(summary.vsToday - 13 / 60) < 0.01,
   "pace includes +13m, got " + summary.vsToday
 );
-assert(
-  summary.perDay.find((d) => d.label === "Thu").endLabel === "7:00 pm",
-  "later days keep the plan"
-);
+assert(Math.abs(wedOt.hours - (9 + 13 / 60)) < 0.01, "Wed hours = share + 13m, got " + wedOt.hours);
+const thuOt = summary.perDay.find((d) => d.label === "Thu");
+const friOt = summary.perDay.find((d) => d.label === "Fri");
+assert(Math.abs(thuOt.hours - (9 - 13 / 120)) < 0.01, "Thu shrinks by half the extra, got " + thuOt.hours);
+assert(Math.abs(friOt.hours - thuOt.hours) < 0.01, "Fri matches Thu, got " + friOt.hours);
+assert(thuOt.endLabel === "6:53 pm", "Thu leave moves earlier, got " + thuOt.endLabel);
 summary = OH.summarizeWeek(daysWed, {}, new Date("2026-08-05T19:00:30+05:00"));
 const wed0 = summary.perDay.find((d) => d.label === "Wed");
 assert(wed0.endKind === "overtime", "checkout minute is green");

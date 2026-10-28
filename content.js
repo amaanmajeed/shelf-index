@@ -658,6 +658,10 @@
           : "";
   }
 
+  function hoursClass(d) {
+    return d.overtimeMin >= 1 ? "si-overtime" : "";
+  }
+
   function endText(d) {
     if (!d || !d.endLabel) return "—";
     if (!(d.overtimeMin >= 1)) return d.endLabel;
@@ -721,16 +725,21 @@
         const html = statsHtml(summary);
         if (stats.innerHTML !== html) stats.innerHTML = html;
       }
-      const i = summary.perDay.findIndex((d) => d.key === summary.todayKey);
-      const today = i >= 0 ? summary.perDay[i] : null;
-      const cell = today && panel.querySelectorAll(".si-table tbody tr")[i];
-      const end = cell && cell.children[2];
-      if (end && !end.querySelector("input, select")) {
-        const text = endText(today);
-        const cls = timeClass(today.endKind);
-        if (end.textContent !== text) end.textContent = text;
-        if (end.className !== cls) end.className = cls;
-      }
+      // end + hours move together once extra minutes shift the plan
+      const rows = panel.querySelectorAll(".si-table tbody tr");
+      summary.perDay.forEach((d, i) => {
+        const tr = rows[i];
+        if (!tr || d.status === "holiday") return;
+        [
+          [2, endText(d), timeClass(d.endKind)],
+          [3, SI.formatHours(d.hours), hoursClass(d)],
+        ].forEach(([c, text, cls]) => {
+          const td = tr.children[c];
+          if (!td || td.querySelector("input, select")) return;
+          if (td.textContent !== text) td.textContent = text;
+          if (td.className !== cls) td.className = cls;
+        });
+      });
     }
     paintNavFacts(summary);
     const stamp = stampOf(summary);
@@ -832,7 +841,7 @@
           : timeCell(endText(d), d.endKind);
         const hoursCell = hoursEd
           ? '<td class="si-edit-cell">' + hoursEditorHtml(d, overrides) + "</td>"
-          : "<td>" + SI.formatHours(d.hours) + "</td>";
+          : '<td class="' + hoursClass(d) + '">' + SI.formatHours(d.hours) + "</td>";
         const canEditStart = !d.checkIn && (d.weekday === 4 || d.weekday === 5);
         const canEditOther =
           !isFriday(d) &&
